@@ -76,9 +76,1425 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // FULL CONTENT WILL BE PUSHED - this is a placeholder for the complete original file from attachments
-        // The actual full 121k character content from /home/workdir/artifacts/index.html should be here.
-        console.log('Please use the complete file');
+        const { useState, useEffect, useMemo, useRef, useCallback } = React;
+        
+        // --- CONFIGURATION ---
+        const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzxL-bpaskhEyWxhJIcJFOCS_kUL-AQsPwJYEjhgtNIY4AXX9ClAKHw-aOp2tqELzd8g/exec";
+        const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1M7dZ8kXGuokvgt5b_hOEJ4A1Wwk44Ab4yANVpYHNrbU/edit";
+        const HOSPITAL_LOGO = "https://img2.pic.in.th/pic/NSO-1362defbb9c0521d4.png";
+        const KPI_DICT_URL = "https://docs.google.com/document/d/1bYNfkAwQvzba-g4wc5hxFsoT9h3UMx11/edit"; 
+
+        const UNITS = ["ANC", "Anest", "CAPD", "ER", "IC", "ICU", "LR", "NICU", "OPD", "OPD จักษุ", "OR", "Ortho", "เด็ก", "ไตเทียม", "พ.1", "พ.2", "พ.3", "พ.4", "ศัลย์", "Palliative care", "สนว", "สงฆ์", "อช", "อญ"];
+        const ALL_UNITS_EXCEPT_IC = UNITS.filter(u => u !== 'IC');
+
+        // --- ICONS ---
+        const Icons = {
+            Activity: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>),
+            Database: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>),
+            AlertCircle: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>),
+            Table: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="12" y1="3" x2="12" y2="21"/></svg>),
+            Save: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>),
+            Edit: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>),
+            ExternalLink: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>),
+            RefreshCw: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>),
+            Download: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>),
+            Settings: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>),
+            Wifi: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>),
+            WifiOff: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>),
+            TrendingUp: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>),
+            Calculator: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>),
+            Trash: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>),
+            Info: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>),
+            CheckCircle: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>),
+            ClipboardList: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M9 14h.01"/><path d="M9 10h.01"/><path d="M9 18h.01"/><path d="M13 14h4"/><path d="M13 10h4"/><path d="M13 18h4"/></svg>),
+            Target: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>),
+            AlertTriangle: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>),
+            Lightbulb: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>),
+            Search: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>),
+            Filter: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>),
+            X: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>)
+        };
+
+        // --- KPI DEFINITIONS & TARGET MAPPING ---
+        const INITIAL_HOSPITAL_KPIS = [
+            { id: 1, name: "Pressure Ulcer rate", category: 'general', target: 4, comparator: "<=", unit: "per 1,000 pt-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวนเกิดแผลกดทับ", labelB: "วันนอนผู้ป่วยรวม", denominatorRef: 901, targetUnits: ALL_UNITS_EXCEPT_IC },
+            { id: 2, name: "Fall with injury", category: 'general', target: 1, comparator: "<", unit: "per 1,000 pt-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวนพลัดตกหกล้ม", labelB: "วันนอนผู้ป่วยรวม", denominatorRef: 901, targetUnits: ALL_UNITS_EXCEPT_IC },
+            { id: 3, name: "Readmission 28 days", category: 'general', target: 5, comparator: "<=", unit: "%", type: 'hospital', calcType: 'rate_100', labelA: "จำนวน Readmit", labelB: "จำนวนจำหน่ายเดือนก่อน", targetUnits: ALL_UNITS_EXCEPT_IC },
+            { id: 4, name: "Phlebitis >= grade 3", category: 'general', target: 0, comparator: "=", unit: "cases", type: 'hospital', calcType: 'count', targetUnits: ALL_UNITS_EXCEPT_IC },
+            { id: 5, name: "Blood transfusion error", category: 'general', target: 0, comparator: "=", unit: "cases", type: 'hospital', calcType: 'count', targetUnits: ALL_UNITS_EXCEPT_IC },
+            { id: 15, name: "Accidental extubation", category: 'general', target: 10, comparator: "<", unit: "per 1,000 ventilator-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวนท่อเลื่อนหลุด", labelB: "วันใส่เครื่องช่วยหายใจ", denominatorRef: 902, targetUnits: ALL_UNITS_EXCEPT_IC },
+            { id: 7, name: "Nurse injury/infection", category: 'general', target: 0, comparator: "=", unit: "cases", type: 'hospital', calcType: 'count', targetUnits: ALL_UNITS_EXCEPT_IC },
+            { id: 902, name: "Ventilator Days", category: 'general', target: 0, comparator: ">", unit: "days", type: 'hospital', calcType: 'count', isICData: true, manualInput: true, targetUnits: ALL_UNITS_EXCEPT_IC },
+            { id: 903, name: "Catheter Days", category: 'general', target: 0, comparator: ">", unit: "days", type: 'hospital', calcType: 'count', isICData: true, manualInput: true, targetUnits: ALL_UNITS_EXCEPT_IC },
+            { id: 904, name: "Central Line Days", category: 'general', target: 0, comparator: ">", unit: "days", type: 'hospital', calcType: 'count', isICData: true, manualInput: true, targetUnits: ALL_UNITS_EXCEPT_IC },
+            
+            // IC Specific KPIs (Only for 'IC' unit)
+            { id: 8, name: "VAP", category: 'ic', target: 1, comparator: "<", unit: "per 1,000 ventilator-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวน VAP", labelB: "วันใส่เครื่องช่วยหายใจ", denominatorRef: 902, targetUnits: ['IC'] },
+            { id: 9, name: "CAUTI", category: 'ic', target: 1.5, comparator: "<", unit: "per 1,000 catheter-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวน CAUTI", labelB: "วันใส่สายสวนปัสสาวะ", denominatorRef: 903, targetUnits: ['IC'] },
+            { id: 11, name: "NI rate", category: 'ic', target: 3, comparator: "<=", unit: "per 1,000 pt-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวน NI", labelB: "วันนอนผู้ป่วยรวม", denominatorRef: 901, targetUnits: ['IC'] },
+            { id: 10, name: "CLABSI", category: 'ic', target: 1.5, comparator: "<", unit: "per 1,000 central line-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวน CLABSI", labelB: "วันใส่ Central Line", denominatorRef: 904, targetUnits: ['IC'] },
+        ];
+
+        // --- ตัวชี้วัดกลางของหน่วยงาน (Shared Unit KPIs) ---
+        const INITIAL_UNIT_KPIS = [
+            { id: 9001, name: "อัตราความพึงพอใจผู้ใช้บริการ", category: 'general', target: 80, comparator: ">=", unit: "%", type: 'unit', calcType: 'rate_100', labelA: "คะแนนรวมที่ได้", labelB: "คะแนนเต็มรวม", ownerUnit: 'ALL' }
+        ];
+
+        // --- HELPER FUNCTIONS ---
+        const checkPass = (actual, target, comparator) => {
+            const act = parseFloat(actual);
+            const tgt = parseFloat(target);
+            switch (comparator) {
+                case "<": return act < tgt;
+                case "<=": return act <= tgt;
+                case "=": return act === tgt;
+                case ">=": return act >= tgt;
+                case ">": return act > tgt;
+                default: return false;
+            }
+        };
+
+        const getMonthName = (m) => ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"][m];
+        const getShortMonthName = (m) => ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."][m];
+        const getCurrentYear = () => new Date().getFullYear() + 543;
+        const generateUUID = () => (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substring(2);
+        
+        // ฟังก์ชันแปลง ปีปฏิทิน -> ปีงบประมาณ (ต.ค. = เดือน 9 -> เป็นปีงบถัดไป)
+        const getFiscalYear = (monthIndex, year) => (monthIndex >= 9) ? parseInt(year) + 1 : parseInt(year);
+
+        // --- COMPONENTS ---
+        const ChartComponent = ({ type, data, options }) => {
+            const canvasRef = useRef(null);
+            const chartInstanceRef = useRef(null);
+            useEffect(() => {
+                if (canvasRef.current) {
+                    if (chartInstanceRef.current) chartInstanceRef.current.destroy();
+                    chartInstanceRef.current = new Chart(canvasRef.current.getContext('2d'), { type, data, options });
+                }
+                return () => { if (chartInstanceRef.current) chartInstanceRef.current.destroy(); };
+            }, [type, data, options]);
+            return <canvas ref={canvasRef} />;
+        };
+
+        const Header = ({ isConnected }) => {
+            const [time, setTime] = useState(new Date());
+            useEffect(() => { const timer = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(timer); }, []);
+            return (
+                <header className="glass-header sticky top-0 z-50 px-6 py-3 mb-6">
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-4">
+                            <img src={HOSPITAL_LOGO} alt="NSO Logo" className="h-14 w-auto object-contain drop-shadow-md" onError={(e) => e.target.style.display='none'} />
+                            <div>
+                                <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Nursing Quality KPI System</h1>
+                                <p className="text-sm text-pink-500 font-medium tracking-wide">NSO Photharam | <span className="italic text-slate-500">Better Data. Better Care.</span></p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border ${isConnected ? 'bg-green-50 text-green-600 border-green-200' : 'bg-red-50 text-red-600 border-red-200'}`}>
+                                {isConnected ? <Icons.Wifi size={14} /> : <Icons.WifiOff size={14} />}
+                                {isConnected ? 'เชื่อมต่อแล้ว (Online)' : 'ขาดการเชื่อมต่อ (Offline)'}
+                            </div>
+                            <div className="text-right hidden md:block">
+                                <div className="text-2xl font-light text-slate-700 font-mono">{time.toLocaleTimeString('th-TH')}</div>
+                                <div className="text-xs text-slate-400">{time.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+        const Card = ({ title, value, subtext, icon: Icon, colorClass, textColor }) => (
+            <div className={`glass-card rounded-2xl p-6 flex items-center justify-between transform hover:-translate-y-1 transition-all duration-300 ${colorClass}`}>
+                <div><p className="text-sm font-medium text-slate-500 mb-1">{title}</p><h3 className={`text-3xl font-bold ${textColor}`}>{value}</h3>{subtext && <p className="text-xs text-slate-400 mt-1">{subtext}</p>}</div>
+                <div className={`p-3 rounded-full bg-white/50 backdrop-blur-sm ${textColor}`}><Icon size={28} /></div>
+            </div>
+        );
+
+        const ToastManager = ({ toasts, removeToast }) => {
+            return (
+                <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2">
+                    {toasts.map(toast => (
+                        <div key={toast.id} className={`flex items-center justify-between p-4 rounded-lg shadow-lg min-w-[300px] animate-slide-in-right ${
+                            toast.type === 'success' ? 'bg-white border-l-4 border-green-500' : 
+                            toast.type === 'error' ? 'bg-white border-l-4 border-red-500' : 
+                            'bg-white border-l-4 border-blue-500'
+                        }`}>
+                            <div className="flex items-center gap-3">
+                                {toast.type === 'success' && <Icons.CheckCircle size={20} className="text-green-500" />}
+                                {toast.type === 'error' && <Icons.AlertCircle size={20} className="text-red-500" />}
+                                {toast.type === 'info' && <Icons.Info size={20} className="text-blue-500" />}
+                                <div>
+                                    <h4 className="text-sm font-bold text-slate-800">{toast.title}</h4>
+                                    {toast.message && <p className="text-xs text-slate-500">{toast.message}</p>}
+                                </div>
+                            </div>
+                            <button onClick={() => removeToast(toast.id)} className="text-slate-400 hover:text-slate-600"><Icons.X size={16} /></button>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        const KPITable = ({ data, onExport, loading, totalRawRecords, onDelete, onEdit }) => {
+            const [searchTerm, setSearchTerm] = useState('');
+            const [statusFilter, setStatusFilter] = useState('all');
+
+            const tableData = useMemo(() => {
+                return data.filter(row => {
+                    const matchSearch = row.kpiName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                        row.unit.toLowerCase().includes(searchTerm.toLowerCase());
+                    const matchStatus = statusFilter === 'all' ? true : row.status === statusFilter;
+                    return matchSearch && matchStatus;
+                });
+            }, [data, searchTerm, statusFilter]);
+
+            return (
+                <div className="glass-card rounded-2xl overflow-hidden mt-6 animate-fade-in flex flex-col">
+                    <div className="p-4 bg-white/50 border-b border-slate-100 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+                        <h3 className="font-semibold text-slate-700 flex items-center gap-2 whitespace-nowrap">
+                            <Icons.Table size={20} className="text-pink-500" /> ตารางข้อมูล KPI
+                        </h3>
+                        
+                        <div className="flex flex-wrap items-center gap-3 flex-1 lg:justify-end">
+                            <div className="relative w-full lg:w-64">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                    <Icons.Search size={16} />
+                                </div>
+                                <input 
+                                    type="text" 
+                                    placeholder="ค้นหาชื่อ KPI หรือหน่วยงาน..." 
+                                    className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-300"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                                <Icons.Filter size={16} className="text-slate-400" />
+                                <select 
+                                    className="py-1.5 px-3 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-pink-300"
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                >
+                                    <option value="all">สถานะทั้งหมด</option>
+                                    <option value="Pass">เฉพาะ "Pass" (ผ่าน)</option>
+                                    <option value="Not Pass">เฉพาะ "Not Pass" (ไม่ผ่าน)</option>
+                                </select>
+                            </div>
+
+                            <div className="hidden lg:block w-px h-6 bg-slate-200"></div>
+
+                            <button onClick={onExport} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-2 shadow-sm">
+                                <Icons.Download size={14} /><span>Excel</span>
+                            </button>
+                            <a href={GOOGLE_SHEET_URL} target="_blank" rel="noopener noreferrer" className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-2 shadow-sm">
+                                <Icons.Database size={14} /><span>Sheet</span>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div className="overflow-x-auto table-container flex-1">
+                        <table className="w-full text-sm text-left text-slate-600 relative">
+                            <thead className="text-xs text-slate-500 uppercase">
+                                <tr>
+                                    <th className="px-4 py-3 min-w-[100px]">Unit</th>
+                                    <th className="px-4 py-3 min-w-[100px]">Month</th>
+                                    {/* ปรับหัวตารางให้แสดง ปีปฏิทิน เป็นหลัก และ ปีงบ เป็นตัวรอง */}
+                                    <th className="px-4 py-3 text-center min-w-[100px]">ปี (ปฏิทิน)</th>
+                                    <th className="px-4 py-3 min-w-[200px]">KPI Name</th>
+                                    <th className="px-4 py-3 text-center min-w-[100px]">Target</th>
+                                    <th className="px-4 py-3 text-center min-w-[80px]">Actual</th>
+                                    <th className="px-4 py-3 text-center min-w-[100px]">Status</th>
+                                    <th className="px-4 py-3 min-w-[150px]">Notes</th>
+                                    <th className="px-4 py-3 text-center min-w-[100px]">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {loading ? (
+                                    <tr><td colSpan="9" className="text-center py-12 text-slate-400"><div className="flex justify-center items-center gap-2"><Icons.RefreshCw className="animate-spin" /> กำลังโหลดข้อมูล...</div></td></tr>
+                                ) : tableData.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="9" className="text-center py-12">
+                                            <div className="flex flex-col items-center justify-center text-slate-400">
+                                                <Icons.Search size={32} className="mb-2 opacity-50"/>
+                                                <p>{totalRawRecords > 0 ? "ไม่พบข้อมูลที่ตรงกับเงื่อนไขการค้นหา" : "ยังไม่มีข้อมูลในระบบ"}</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    tableData.map((row) => (
+                                        <tr key={row.id || Math.random()} className="bg-white border-b hover:bg-slate-50 transition-colors">
+                                            <td className="px-4 py-3 font-medium text-slate-800">{row.unit}</td>
+                                            <td className="px-4 py-3 whitespace-nowrap">{getMonthName(parseInt(row.month))}</td>
+                                            {/* แสดงปีปฏิทิน และปีงบประมาณกำกับไว้ */}
+                                            <td className="px-4 py-3 text-center leading-tight">
+                                                <span className="font-semibold text-slate-700">{row.year}</span><br/>
+                                                <span className="text-[10px] text-slate-400">งบฯ {row.fiscalYear}</span>
+                                            </td>
+                                            <td className="px-4 py-3">{row.kpiName}</td>
+                                            <td className="px-4 py-3 text-center text-slate-500 whitespace-nowrap">{row.comparator} {row.target}</td>
+                                            <td className="px-4 py-3 text-center font-semibold text-slate-800">{row.actual}</td>
+                                            <td className="px-4 py-3 text-center">
+                                                <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${row.status === 'Pass' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
+                                                    {row.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-xs text-slate-400 truncate max-w-[150px] cursor-help" title={row.notes}>{row.notes || '-'}</td>
+                                            <td className="px-4 py-3 text-center flex justify-center gap-1">
+                                                <button onClick={() => onEdit(row)} className="p-1.5 text-blue-500 hover:bg-blue-100 rounded transition-colors" title="แก้ไข"><Icons.Edit size={16}/></button>
+                                                <button onClick={() => onDelete(row.id)} className="p-1.5 text-red-500 hover:bg-red-100 rounded transition-colors" title="ลบ"><Icons.Trash size={16}/></button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        const SubmissionMatrix = ({ records, year, kpiDefinitions }) => {
+            const fiscalMonths = [9, 10, 11, 0, 1, 2, 3, 4, 5, 6, 7, 8];
+            const [detailModal, setDetailModal] = useState(null);
+
+            const submissionStats = useMemo(() => {
+                const stats = {};
+                UNITS.forEach(unit => {
+                    const expectedDefs = kpiDefinitions.filter(k => {
+                        if (k.type === 'hospital') {
+                            return !k.targetUnits || k.targetUnits.includes('ALL') || k.targetUnits.includes(unit);
+                        } else {
+                            return k.ownerUnit === 'ALL' || k.ownerUnit === unit;
+                        }
+                    });
+
+                    fiscalMonths.forEach(m => {
+                        const key = `${unit}-${m}`;
+                        const submittedRecords = records.filter(r => r.fiscalYear == year && r.unit === unit && r.month == m);
+                        const submittedNames = [...new Set(submittedRecords.map(r => r.kpiName))];
+                        
+                        const submittedExpected = expectedDefs.filter(def => submittedNames.includes(def.name));
+                        const missingDefs = expectedDefs.filter(def => !submittedNames.includes(def.name));
+                        
+                        stats[key] = {
+                            expectedCount: expectedDefs.length,
+                            submittedCount: submittedExpected.length,
+                            missingDefs: missingDefs,
+                            submittedRecords: submittedRecords,
+                            isComplete: expectedDefs.length > 0 && missingDefs.length === 0,
+                            isPartial: submittedExpected.length > 0 && missingDefs.length > 0,
+                            isNone: submittedExpected.length === 0
+                        };
+                    });
+                });
+                return stats;
+            }, [records, year, kpiDefinitions]);
+
+            const handleCellClick = (unit, monthIndex) => {
+                const stat = submissionStats[`${unit}-${monthIndex}`];
+                if (stat && stat.expectedCount > 0) {
+                    setDetailModal({
+                        unit,
+                        month: monthIndex,
+                        submittedRecords: stat.submittedRecords,
+                        missingDefs: stat.missingDefs
+                    });
+                }
+            };
+
+            return (
+                <div className="glass-card rounded-2xl overflow-hidden mt-6 animate-fade-in relative">
+                    <div className="p-4 bg-white/50 border-b border-slate-100 flex justify-between items-center">
+                        <h3 className="font-semibold text-slate-700 flex items-center gap-2">
+                            <Icons.ClipboardList size={20} className="text-pink-500" /> 
+                            สถานะการส่งข้อมูล (ปีงบประมาณ {year})
+                        </h3>
+                        <span className="text-xs text-slate-500 bg-white px-3 py-1 rounded-full border shadow-sm">💡 คลิกที่ช่องเพื่อดูรายการขาดส่ง</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-xs text-left text-slate-600">
+                            <thead className="uppercase bg-pink-50/50">
+                                <tr>
+                                    <th className="px-4 py-3 min-w-[100px] sticky left-0 bg-pink-50 z-10">หน่วยงาน</th>
+                                    {fiscalMonths.map(m => (
+                                        <th key={m} className="px-2 py-3 text-center min-w-[50px]">{getShortMonthName(m)}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {UNITS.map((unit, idx) => {
+                                    return (
+                                        <tr key={unit} className={`border-b hover:bg-slate-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
+                                            <td className="px-4 py-3 font-medium text-slate-800 sticky left-0 bg-inherit border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{unit}</td>
+                                            {fiscalMonths.map(m => {
+                                                const stat = submissionStats[`${unit}-${m}`];
+                                                
+                                                if (!stat || stat.expectedCount === 0) {
+                                                    return <td key={m} className="px-2 py-3 text-center border-l border-dashed border-slate-100 text-slate-300">-</td>;
+                                                }
+
+                                                return (
+                                                    <td key={m} 
+                                                        className="px-2 py-3 text-center border-l border-dashed border-slate-100 cursor-pointer hover:bg-pink-50 transition-colors"
+                                                        onClick={() => handleCellClick(unit, m)}
+                                                        title={`คลิกดูรายละเอียด ${unit} เดือน ${getMonthName(m)}`}
+                                                    >
+                                                        {stat.isComplete ? (
+                                                            <div className="w-8 h-6 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px] font-bold shadow-sm ring-2 ring-transparent hover:ring-emerald-300 transition-all transform hover:scale-110">
+                                                                {stat.submittedCount}/{stat.expectedCount}
+                                                            </div>
+                                                        ) : stat.isPartial ? (
+                                                            <div className="w-8 h-6 mx-auto rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] font-bold shadow-sm ring-2 ring-transparent hover:ring-amber-300 transition-all transform hover:scale-110">
+                                                                {stat.submittedCount}/{stat.expectedCount}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex justify-center">
+                                                                <div className="w-3 h-3 rounded-full bg-slate-200 hover:bg-rose-300 transition-all transform hover:scale-125"></div>
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="p-3 bg-white/50 border-t text-[10px] text-slate-500 flex gap-4 justify-end">
+                        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-emerald-100 border border-emerald-200"></div> ส่งครบถ้วน (ส่งแล้ว/เป้าหมาย)</div>
+                        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-amber-100 border border-amber-200"></div> ส่งบางส่วน</div>
+                        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-slate-200"></div> ยังไม่ส่งข้อมูล</div>
+                    </div>
+
+                    {/* Detail Modal */}
+                    {detailModal && (
+                        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in p-4">
+                            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col">
+                                <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-pink-50 to-white rounded-t-2xl">
+                                    <div>
+                                        <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
+                                            <Icons.ClipboardList size={20} className="text-pink-500" />
+                                            ตรวจสอบการส่งข้อมูล
+                                        </h3>
+                                        <p className="text-sm text-slate-500 mt-1">หน่วยงาน: <strong>{detailModal.unit}</strong> | เดือน: <strong>{getMonthName(detailModal.month)} ปีงบฯ {year}</strong></p>
+                                    </div>
+                                    <button onClick={() => setDetailModal(null)} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors"><Icons.X size={20}/></button>
+                                </div>
+                                
+                                <div className="p-5 overflow-y-auto space-y-6 bg-slate-50/50">
+                                    {/* Missing KPIs Section */}
+                                    <div className="bg-white p-4 rounded-xl shadow-sm border border-rose-100">
+                                        <h4 className="font-bold text-rose-600 mb-3 flex items-center gap-2 border-b border-rose-50 pb-2">
+                                            <Icons.AlertCircle size={18}/> รายการที่ยังขาดส่ง ({detailModal.missingDefs.length})
+                                        </h4>
+                                        {detailModal.missingDefs.length > 0 ? (
+                                            <ul className="text-sm space-y-2">
+                                                {detailModal.missingDefs.map(def => (
+                                                    <li key={def.id} className="flex items-start gap-3 text-slate-600 pl-2">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-rose-400 mt-1.5 shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-medium text-slate-700">{def.name}</span>
+                                                            <div className="text-[10px] text-slate-400">
+                                                                หมวด: {def.type === 'hospital' ? 'ตัวชี้วัดโรงพยาบาล (Core)' : 'ตัวชี้วัดหน่วยงาน (Unit/Shared)'}
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 p-3 rounded-lg border border-emerald-100">
+                                                <Icons.CheckCircle size={18} /> ยอดเยี่ยม! ส่งข้อมูลครบทุกรายการแล้ว
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Submitted KPIs Section */}
+                                    <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                                        <h4 className="font-bold text-emerald-600 mb-3 flex items-center gap-2 border-b border-emerald-50 pb-2">
+                                            <Icons.CheckCircle size={18}/> รายการที่ส่งแล้ว ({detailModal.submittedRecords.length})
+                                        </h4>
+                                        {detailModal.submittedRecords.length > 0 ? (
+                                            <ul className="text-sm space-y-2">
+                                                {detailModal.submittedRecords.map(r => (
+                                                    <li key={r.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">
+                                                        <span className="font-medium text-slate-700 truncate pr-2 mb-1 sm:mb-0">{r.kpiName}</span>
+                                                        <div className="flex items-center gap-2 shrink-0">
+                                                            <span className="font-bold text-slate-800">{r.actual}</span>
+                                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border ${r.status === 'Pass' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>
+                                                                {r.status}
+                                                            </span>
+                                                        </div>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <div className="text-center py-4 text-slate-400 text-sm">ยังไม่มีการส่งข้อมูลในเดือนนี้</div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="p-4 border-t border-slate-100 flex justify-end bg-white rounded-b-2xl">
+                                    <button onClick={() => setDetailModal(null)} className="px-6 py-2 bg-slate-800 text-white rounded-lg shadow hover:bg-slate-700 transition-colors">ปิดหน้าต่าง</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const KPIRow = ({ kpi, inputsA, onChangeA, inputsB, onChangeB, notes, onChangeNote }) => {
+            const isCalc = kpi.calcType && (kpi.calcType === 'rate_1000' || kpi.calcType === 'rate_100');
+            const valA = inputsA[kpi.id] || '';
+            const valB = inputsB[kpi.id] || '';
+            
+            let calculated = '';
+            if (isCalc && valA && valB && parseFloat(valB) !== 0) {
+                const multiplier = kpi.calcType === 'rate_1000' ? 1000 : 100;
+                calculated = ((parseFloat(valA) / parseFloat(valB)) * multiplier).toFixed(2);
+            }
+
+            return (
+                <div className="flex flex-col gap-2 p-4 border rounded hover:bg-slate-50 relative">
+                    <div className="flex justify-between items-center">
+                        <div className="font-medium text-sm text-slate-700 flex items-center gap-2">
+                            {kpi.name}
+                            {kpi.isICData && <span className="text-[10px] bg-blue-100 text-blue-600 px-1 rounded">IC Data</span>}
+                            <a href={KPI_DICT_URL} target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-indigo-500 transition-colors" title="คลิกเพื่อดูความหมายตัวชี้วัด"><Icons.Info size={14}/></a>
+                        </div>
+                        <div className="text-xs text-slate-400 bg-white px-2 py-1 rounded border">Target {kpi.comparator} {kpi.target}</div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        {isCalc ? (
+                            <div className="grid grid-cols-12 gap-2 items-end">
+                                <div className="col-span-4">
+                                    <label className="text-xs font-semibold text-slate-500 block truncate mb-1" title={kpi.labelA || 'ตัวตั้ง'}>{kpi.labelA || 'ตัวตั้ง'}</label>
+                                    <input type="number" className="w-full input-pastel rounded px-2 py-1 text-right text-sm" value={valA} onChange={e=>onChangeA(kpi.id, e.target.value)} />
+                                </div>
+                                <div className="col-span-4">
+                                    <label className="text-xs font-semibold text-slate-500 block truncate mb-1" title={kpi.labelB || 'ตัวหาร'}>{kpi.labelB || 'ตัวหาร'}</label>
+                                    <input type="number" className="w-full input-pastel rounded px-2 py-1 text-right text-sm" value={valB} onChange={e=>onChangeB(kpi.id, e.target.value)} />
+                                </div>
+                                <div className="col-span-4 bg-pink-50 rounded px-2 py-1.5 flex flex-col justify-center items-end border border-pink-100 h-[52px]">
+                                    <span className="text-[10px] text-pink-400 font-bold leading-none">RATE</span>
+                                    <span className="text-base font-bold text-pink-600 leading-none mt-1">{calculated || '-'}</span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2"><span className="text-xs text-slate-400">จำนวน:</span>
+                                <input type="number" className="w-24 input-pastel rounded px-2 py-1 text-right text-sm font-semibold" value={inputsA[kpi.id]||''} onChange={e=>onChangeA(kpi.id, e.target.value)} />
+                                <span className="text-xs text-slate-400">{kpi.unit}</span>
+                            </div>
+                        )}
+                        <div className="flex-1 mt-1">
+                            <textarea rows="1" placeholder="Note..." className="w-full input-pastel rounded px-3 py-1 text-xs resize-none" value={notes[kpi.id]||''} onChange={e=>onChangeNote(kpi.id, e.target.value)} />
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-2xl p-6 w-96 shadow-2xl">
+                        <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
+                            <span className="text-yellow-500"><Icons.AlertCircle size={24}/></span> {title}
+                        </h3>
+                        <p className="text-sm text-slate-500 mb-6">{message}</p>
+                        <div className="flex justify-end gap-3">
+                            <button onClick={onClose} className="px-4 py-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">ยกเลิก</button>
+                            <button onClick={onConfirm} className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 shadow-lg transition-colors">ยืนยันการลบ</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const EditRecordModal = ({ isOpen, onClose, record, onSave }) => {
+            if (!isOpen || !record) return null;
+            const [editActual, setEditActual] = useState(record.actual);
+            const [editNote, setEditNote] = useState(record.notes);
+
+            const handleSave = () => {
+                onSave({ ...record, actual: editActual, notes: editNote });
+                onClose();
+            };
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+                        <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <Icons.Edit size={20}/> แก้ไขข้อมูล
+                        </h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 block mb-1">KPI</label>
+                                <div className="text-sm font-medium text-slate-800">{record.kpiName}</div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><label className="text-xs font-bold text-slate-500 block mb-1">Unit</label><div className="text-sm">{record.unit}</div></div>
+                                <div><label className="text-xs font-bold text-slate-500 block mb-1">Month</label><div className="text-sm">{getMonthName(parseInt(record.month))} {record.year}</div></div>
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 block mb-1">ค่าผลลัพธ์ (Actual)</label>
+                                <input type="number" className="w-full input-pastel rounded px-3 py-2 font-bold text-lg text-pink-600" value={editActual} onChange={e => setEditActual(e.target.value)} />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 block mb-1">หมายเหตุ (Note)</label>
+                                <textarea className="w-full input-pastel rounded px-3 py-2 text-sm" rows="3" value={editNote} onChange={e => setEditNote(e.target.value)} />
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-2 mt-6">
+                            <button onClick={onClose} className="px-4 py-2 text-slate-500 hover:bg-slate-50 rounded">ยกเลิก</button>
+                            <button onClick={handleSave} className="px-6 py-2 bg-pink-500 text-white rounded shadow hover:bg-pink-600">บันทึกการแก้ไข</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const KPIFormModal = ({ isOpen, onClose, mode, initialData, onSave, activeTab, selectedUnitTab }) => {
+            if (!isOpen) return null;
+            const [formData, setFormData] = useState({ 
+                name: '', target: '', comparator: '<=', unit: '', calcType: 'count', labelA: '', labelB: '',
+                targetUnits: [],
+                ...initialData
+            });
+
+            useEffect(() => {
+                if (initialData) {
+                    setFormData({
+                        name: '', target: '', comparator: '<=', unit: '', calcType: 'count', labelA: '', labelB: '',
+                        targetUnits: initialData.targetUnits || (activeTab === 'hospital' ? ALL_UNITS_EXCEPT_IC : []),
+                        ...initialData
+                    });
+                } else {
+                    setFormData({
+                        name: '', target: '', comparator: '<=', unit: '', calcType: 'count', labelA: '', labelB: '',
+                        targetUnits: activeTab === 'hospital' ? ALL_UNITS_EXCEPT_IC : []
+                    });
+                }
+            }, [initialData, activeTab]);
+
+            const handleSave = () => {
+                if (!formData.name || formData.target === '' || formData.target === null || formData.target === undefined) {
+                    return alert("ระบุข้อมูลชื่อและค่าเป้าหมายให้ครบถ้วน");
+                }
+                onSave(formData);
+            };
+
+            return (
+                 <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/30 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded p-6 w-full max-w-md shadow-lg border border-slate-100 flex flex-col max-h-[90vh]">
+                        <h3 className="font-bold mb-4 text-lg text-slate-700 flex items-center gap-2">
+                            <span className="bg-pink-100 p-2 rounded-full text-pink-600"><Icons.Activity size={20}/></span>
+                            {mode === 'add' ? 'สร้าง KPI ใหม่' : 'แก้ไขรายการ KPI'}
+                        </h3>
+                        
+                        <div className="mb-4 p-3 bg-slate-50 rounded-lg text-sm border border-slate-200">
+                            <span className="text-slate-500 font-bold block mb-1">สำหรับ:</span>
+                            <span className="text-pink-600 font-bold text-lg block">
+                                {activeTab === 'hospital' ? 'Hospital Core (ภาพรวม รพ.)' : `Unit: ${selectedUnitTab}`}
+                            </span>
+                        </div>
+
+                        <div className="space-y-3 overflow-y-auto pr-2 flex-1">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">ชื่อตัวชี้วัด (KPI Name)</label>
+                                <input className="w-full input-pastel rounded p-2" placeholder="เช่น คะแนนความพึงพอใจ" value={formData.name} onChange={e=>setFormData({...formData, name:e.target.value})} />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">รูปแบบการคำนวณ (Calculation Type)</label>
+                                <select className="w-full input-pastel rounded p-2" value={formData.calcType} onChange={e => setFormData({...formData, calcType: e.target.value, unit: e.target.value === 'rate_100' ? '%' : (e.target.value === 'rate_1000' ? 'per 1,000 days' : formData.unit)})}>
+                                    <option value="count">จำนวนนับ (Standard Count)</option>
+                                    <option value="rate_100">ร้อยละ (%) (Percentage)</option>
+                                    <option value="rate_1000">อัตราต่อ 1,000 (Rate per 1,000)</option>
+                                </select>
+                            </div>
+
+                            {formData.calcType !== 'count' && (
+                                <div className="p-3 bg-blue-50 rounded border border-blue-100 animate-fade-in">
+                                    <div className="mb-2">
+                                        <label className="block text-xs font-bold text-blue-600 mb-1">ชื่อตัวตั้ง (A) - Numerator</label>
+                                        <input className="w-full bg-white border border-blue-200 rounded p-2 text-sm" placeholder="เช่น คะแนนรวมที่ได้" value={formData.labelA || ''} onChange={e=>setFormData({...formData, labelA:e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-blue-600 mb-1">ชื่อตัวหาร (B) - Denominator</label>
+                                        <input className="w-full bg-white border border-blue-200 rounded p-2 text-sm" placeholder="เช่น คะแนนเต็มรวม (คนx10)" value={formData.labelB || ''} onChange={e=>setFormData({...formData, labelB:e.target.value})} />
+                                    </div>
+                                </div>
+                            )}
+                            
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">เงื่อนไขเป้าหมาย</label>
+                                    <select className="w-full input-pastel rounded p-2" value={formData.comparator} onChange={e=>setFormData({...formData, comparator:e.target.value})}>
+                                        <option value="<=">น้อยกว่าหรือเท่ากับ (≤)</option>
+                                        <option value="<">น้อยกว่า (&lt;)</option>
+                                        <option value="=">เท่ากับ (=)</option>
+                                        <option value=">">มากกว่า (&gt;)</option>
+                                        <option value=">=">มากกว่าหรือเท่ากับ (≥)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">ค่าเป้าหมาย (Target)</label>
+                                    <input type="number" className="w-full input-pastel rounded p-2" placeholder="0" value={formData.target} onChange={e=>setFormData({...formData, target:e.target.value})} />
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">หน่วยนับ (Unit)</label>
+                                <input className="w-full input-pastel rounded p-2" placeholder="เช่น ราย, ครั้ง, %" value={formData.unit} onChange={e=>setFormData({...formData, unit:e.target.value})} />
+                            </div>
+
+                            {activeTab === 'hospital' && (
+                                <div className="mt-4 pt-3 border-t border-slate-200">
+                                    <label className="block text-xs font-bold text-slate-600 mb-2">📌 หน่วยงานที่บังคับให้บันทึก KPI ตัวนี้ (Target Units)</label>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                                        <label className="flex items-center gap-1 text-xs col-span-full mb-2 pb-2 border-b border-slate-200 cursor-pointer">
+                                            <input type="checkbox" className="w-4 h-4 text-pink-600" checked={formData.targetUnits?.length === UNITS.length} onChange={(e) => setFormData({...formData, targetUnits: e.target.checked ? [...UNITS] : []})} />
+                                            <span className="font-bold text-pink-600 ml-1">เลือกทั้งหมด (All Units)</span>
+                                        </label>
+                                        {UNITS.map(u => (
+                                            <label key={u} className="flex items-center gap-1 text-xs cursor-pointer hover:bg-slate-100 p-1 rounded">
+                                                <input type="checkbox" className="w-3.5 h-3.5" checked={formData.targetUnits?.includes(u)} onChange={(e) => {
+                                                    const current = formData.targetUnits || [];
+                                                    const newTargets = e.target.checked ? [...current, u] : current.filter(x => x !== u);
+                                                    setFormData({...formData, targetUnits: newTargets});
+                                                }} />
+                                                {u}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-2 mt-6 border-t pt-4 shrink-0">
+                            <button onClick={onClose} className="px-4 py-2 text-slate-500 hover:bg-slate-50 rounded">ยกเลิก</button>
+                            <button onClick={handleSave} className="px-6 py-2 bg-pink-500 text-white rounded shadow hover:bg-pink-600 transition-colors">บันทึก</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ManageKPIsModal = ({ isOpen, onClose, kpis, onDelete, onAdd, onEdit, type, ownerUnit }) => {
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl max-h-[90vh] flex flex-col">
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-center flex-wrap gap-4">
+                            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                <span className="bg-slate-100 p-2 rounded-full"><Icons.Settings size={20} /></span>
+                                จัดการรายการ KPI ({type === 'hospital' ? 'Hospital' : ownerUnit})
+                            </h3>
+                            <div className="flex gap-2 flex-wrap items-center">
+                                <a href={KPI_DICT_URL} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-sm hover:bg-indigo-100 flex items-center gap-1 border border-indigo-200 shadow-sm transition-colors" title="ดูคู่มือความหมายตัวชี้วัด">
+                                    <Icons.Info size={16} /> ดูความหมาย KPI
+                                </a>
+                                
+                                <div className="w-px h-6 bg-slate-200 mx-1"></div>
+                                <button onClick={onAdd} className="bg-pink-500 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-pink-600 flex items-center gap-1 shadow-sm transition-all transform hover:scale-105">
+                                    <Icons.Activity size={16} /> + เพิ่ม KPI
+                                </button>
+                                <button onClick={onClose} className="text-slate-400 hover:text-slate-600 ml-2">ปิด</button>
+                            </div>
+                        </div>
+                        <div className="p-6 overflow-y-auto flex-1">
+                            {kpis.length === 0 ? (
+                                <div className="text-center py-10 text-slate-400">
+                                    <p>ยังไม่มีรายการ KPI ในหมวดนี้</p>
+                                    <p className="text-xs">กดปุ่ม "+ เพิ่ม KPI" เพื่อสร้างรายการใหม่</p>
+                                </div>
+                            ) : (
+                                <table className="w-full text-sm text-left text-slate-600">
+                                    <thead className="text-xs text-slate-500 uppercase bg-slate-50">
+                                        <tr><th>Name</th><th>Type</th><th>Cond</th><th>Target</th><th>Unit</th><th>Action</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        {kpis.map((kpi) => (
+                                            <tr key={kpi.id} className="border-b hover:bg-slate-50">
+                                                <td className="py-2">
+                                                    {kpi.name}
+                                                    {kpi.ownerUnit === 'ALL' && <span className="ml-2 inline-block text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-bold uppercase">Shared</span>}
+                                                    {kpi.isICData && <span className="ml-2 inline-block text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold uppercase">Base Data</span>}
+                                                </td>
+                                                <td className="py-2"><span className="text-xs bg-slate-100 px-2 py-1 rounded">{kpi.calcType === 'rate_100' ? '%' : (kpi.calcType === 'rate_1000' ? 'Rate' : 'Count')}</span></td>
+                                                <td className="py-2">{kpi.comparator}</td>
+                                                <td className="py-2">{kpi.target}</td>
+                                                <td className="py-2">{kpi.unit}</td>
+                                                <td className="py-2 whitespace-nowrap">
+                                                    <button onClick={() => onEdit(kpi)} className="text-blue-500 hover:text-blue-700 font-medium mr-3 bg-blue-50 px-2 py-1 rounded">Edit</button>
+                                                    {(!INITIAL_HOSPITAL_KPIS.some(init => init.id === kpi.id) && !INITIAL_UNIT_KPIS.some(init => init.id === kpi.id)) ? (
+                                                        <button onClick={() => onDelete(kpi.id)} className="text-red-400 hover:text-red-600">Del</button>
+                                                    ) : (
+                                                        <span className="text-[10px] text-slate-400 ml-2">Standard</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Main App ---
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('hospital');
+            const [kpiRecords, setKpiRecords] = useState([]); 
+            const [kpiDefinitions, setKpiDefinitions] = useState([...INITIAL_HOSPITAL_KPIS, ...INITIAL_UNIT_KPIS]);
+            const [loading, setLoading] = useState(true);
+            const [isSaving, setIsSaving] = useState(false);
+            const [isConnected, setIsConnected] = useState(false);
+            
+            const [toasts, setToasts] = useState([]);
+            const addToast = useCallback((title, message, type = 'success') => {
+                const id = Date.now();
+                setToasts(prev => [...prev, { id, title, message, type }]);
+                setTimeout(() => {
+                    setToasts(prev => prev.filter(t => t.id !== id));
+                }, 3000); 
+            }, []);
+
+            const removeToast = (id) => { setToasts(prev => prev.filter(t => t.id !== id)); };
+            
+            const [filterMonth, setFilterMonth] = useState('all'); 
+            const [filterQuarter, setFilterQuarter] = useState('all');
+            const today = new Date();
+            const currentFiscalYear = (today.getMonth() >= 9) ? today.getFullYear() + 543 + 1 : today.getFullYear() + 543;
+            const [filterYear, setFilterYear] = useState(currentFiscalYear);
+            const [filterUnit, setFilterUnit] = useState('all'); 
+            const [selectedUnitTab, setSelectedUnitTab] = useState(UNITS[0]);
+            const [analysisKpiName, setAnalysisKpiName] = useState(INITIAL_HOSPITAL_KPIS[0].name);
+            
+            const [unitTrendKpiName, setUnitTrendKpiName] = useState('');
+
+            const [inputUnit, setInputUnit] = useState(UNITS[0]);
+            const [inputMonth, setInputMonth] = useState(new Date().getMonth());
+            const [inputYear, setInputYear] = useState(getCurrentYear());
+            const [inputsA, setInputsA] = useState({});
+            const [inputsB, setInputsB] = useState({});
+            const [inputNotes, setInputNotes] = useState({});
+
+            const [kpiFormState, setKpiFormState] = useState({ isOpen: false, mode: 'add', data: null });
+            const [showManageModal, setShowManageModal] = useState(false);
+            
+            const [editingRecord, setEditingRecord] = useState(null);
+            const [confirmDeleteState, setConfirmDeleteState] = useState({ isOpen: false, id: null, type: 'data' });
+
+            const syncDefsToCloud = async (newDefs) => {
+                const configId = 'CONFIG_KPI_DEFS_MASTER'; 
+                const timestamp = Date.now(); 
+
+                const configRecord = {
+                    id: configId,
+                    unit: 'SYSTEM_CONFIG',
+                    kpiName: 'KPI_DEFINITIONS_BACKUP',
+                    target: timestamp, 
+                    actual: 0, comparator: '=', unitType: 'config',
+                    month: 1, year: 2599, status: 'System',
+                    notes: JSON.stringify(newDefs),
+                    kpiType: 'system_config'
+                };
+                
+                try {
+                    await fetch(APP_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', id: configId }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+                    await fetch(APP_SCRIPT_URL, { method: 'POST', body: JSON.stringify([configRecord]), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+                } catch(e) { console.error("Failed to sync definitions", e); }
+            };
+
+            const updateKpiDefinitions = (newDefs) => {
+                setKpiDefinitions(newDefs);
+                syncDefsToCloud(newDefs);
+            };
+
+            const handleInputAChange = (id, val) => {
+                setInputsA(prev => ({ ...prev, [id]: val }));
+                if (id == 902) { setInputsB(prev => ({ ...prev, 8: val, 15: val })); }
+                if (id == 903) { setInputsB(prev => ({ ...prev, 9: val })); }
+                if (id == 904) { setInputsB(prev => ({ ...prev, 10: val })); }
+            };
+
+            const handleInputBChange = (id, val) => { setInputsB(prev => ({ ...prev, [id]: val })); };
+            const handleNoteChange = (id, val) => { setInputNotes(prev => ({ ...prev, [id]: val })); };
+
+            const fetchData = async () => {
+                setLoading(true);
+                try {
+                    const response = await fetch(`${APP_SCRIPT_URL}?t=${Date.now()}`);
+                    const text = await response.text(); 
+                    if (text.trim().startsWith("NSO KPI System")) { 
+                        addToast("ข้อผิดพลาดระบบ", "ตรวจพบ Google Apps Script เวอร์ชันเก่า", "error"); 
+                        setIsConnected(false); setKpiRecords([]); return; 
+                    }
+                    try {
+                        const data = JSON.parse(text);
+                        if (data.error) { console.error(data.error); setIsConnected(false); } 
+                        else {
+                            const formattedData = data.map(d => {
+                                const m = parseInt(d.month);
+                                const y = parseInt(d.year);
+                                return { ...d, month: m, year: y, fiscalYear: getFiscalYear(m, y), kpiType: d.kpiType || 'hospital' };
+                            });
+
+                            const configRecords = formattedData.filter(d => d.unit === 'SYSTEM_CONFIG' && d.id === 'CONFIG_KPI_DEFS_MASTER');
+                            let recoveredDefs = [];
+                            let hasCloudConfig = false;
+                            if (configRecords.length > 0) {
+                                const latestConfig = configRecords.sort((a, b) => parseFloat(a.target || 0) - parseFloat(b.target || 0)).pop();
+                                try {
+                                    const cloudDefs = JSON.parse(latestConfig.notes);
+                                    if (Array.isArray(cloudDefs)) { 
+                                        recoveredDefs = cloudDefs; 
+                                        hasCloudConfig = true;
+                                    }
+                                } catch (e) { console.error("Cloud config parse error", e); }
+                            }
+
+                            const validRecords = formattedData.filter(d => d.unit !== 'SYSTEM_CONFIG');
+                            
+                            let allDefs = [];
+                            if (hasCloudConfig) {
+                                allDefs = recoveredDefs;
+                                const initialAll = [...INITIAL_HOSPITAL_KPIS, ...INITIAL_UNIT_KPIS];
+                                initialAll.forEach(initKpi => {
+                                    if (!allDefs.some(d => d.id === initKpi.id)) {
+                                        allDefs.push(initKpi);
+                                    }
+                                });
+                            } else {
+                                allDefs = [...INITIAL_HOSPITAL_KPIS, ...INITIAL_UNIT_KPIS];
+                            }
+                            
+                            setKpiDefinitions(allDefs);
+                            
+                            const uniqueMap = new Map();
+                            validRecords.forEach(record => {
+                                const key = `${record.unit}-${record.kpiName}-${record.month}-${record.year}`;
+                                uniqueMap.set(key, record);
+                            });
+                            setKpiRecords(Array.from(uniqueMap.values()));
+                            setIsConnected(true);
+                        }
+                    } catch (jsonError) { console.error("JSON Parse Error", text); setIsConnected(false); }
+                } catch (error) { console.error("Fetch Error", error); setIsConnected(false); } finally { setLoading(false); }
+            };
+
+            useEffect(() => { fetchData(); }, []);
+
+            const activeDefinitions = useMemo(() => {
+                if (activeTab === 'hospital') return kpiDefinitions.filter(k => k.type === 'hospital');
+                if (activeTab === 'unit') return kpiDefinitions.filter(k => k.type === 'unit' && (k.ownerUnit === selectedUnitTab || k.ownerUnit === 'ALL'));
+                return [];
+            }, [activeTab, kpiDefinitions, selectedUnitTab]);
+
+            useEffect(() => {
+                if (activeTab === 'unit' && activeDefinitions.length > 0 && !unitTrendKpiName) {
+                    setUnitTrendKpiName(activeDefinitions[0].name);
+                } else if (activeTab === 'unit' && activeDefinitions.length > 0 && !activeDefinitions.some(k => k.name === unitTrendKpiName)) {
+                     setUnitTrendKpiName(activeDefinitions[0].name); 
+                }
+            }, [activeTab, activeDefinitions, selectedUnitTab]);
+
+            const groupedDefinitions = useMemo(() => {
+                const groups = { general: [], ic: [] };
+                activeDefinitions.forEach(kpi => {
+                    if (kpi.category === 'ic') groups.ic.push(kpi);
+                    else groups.general.push(kpi);
+                });
+                return groups;
+            }, [activeDefinitions]);
+
+            const filteredData = useMemo(() => {
+                if (activeTab === 'analysis') { return kpiRecords.filter(r => r.kpiName === analysisKpiName && r.fiscalYear == filterYear); }
+                return kpiRecords.filter(record => {
+                    const matchYear = record.fiscalYear == filterYear;
+                    const matchMonth = filterQuarter === 'all' ? (filterMonth === 'all' ? true : record.month == filterMonth) : (Math.floor(record.month/3) + 1) == parseInt(filterQuarter);
+                    
+                    let matchTypeAndUnit = false;
+                    const isShared = kpiDefinitions.some(k => k.name === record.kpiName && k.ownerUnit === 'ALL');
+                    
+                    if (activeTab === 'hospital') { 
+                        matchTypeAndUnit = (record.kpiType === 'hospital' || isShared) && (filterUnit === 'all' ? true : record.unit === filterUnit); 
+                    } 
+                    else if (activeTab === 'unit') { 
+                        const isUnitKpiType = record.kpiType === 'unit' || isShared;
+                        matchTypeAndUnit = isUnitKpiType && (record.unit === selectedUnitTab); 
+                    } 
+                    else { matchTypeAndUnit = true; }
+                    return matchYear && matchMonth && matchTypeAndUnit;
+                });
+            }, [kpiRecords, filterYear, filterMonth, filterQuarter, filterUnit, selectedUnitTab, activeTab, analysisKpiName, kpiDefinitions]);
+
+            const stats = useMemo(() => {
+                const evaluableRecords = filteredData.filter(r => {
+                    const def = kpiDefinitions.find(d => d.name === r.kpiName);
+                    return !def?.isICData;
+                });
+                if (evaluableRecords.length === 0) return { passRate: 0, total: 0, passed: 0, failed: 0 };
+                const total = evaluableRecords.length;
+                const passed = evaluableRecords.filter(r => r.status === 'Pass').length;
+                return { total, passed, failed: total - passed, passRate: ((passed / total) * 100).toFixed(1) };
+            }, [filteredData, kpiDefinitions]);
+
+            const chartData = useMemo(() => {
+                const highStats = {};
+                const lowStats = {};
+                
+                filteredData.forEach(r => {
+                    const def = kpiDefinitions.find(d => d.name === r.kpiName);
+                    if (def?.isICData) return;
+                    
+                    const isHighScale = def?.calcType === 'rate_100' || parseFloat(def?.target) >= 20;
+                    const targetObj = isHighScale ? highStats : lowStats;
+                    
+                    if (!targetObj[r.kpiName]) targetObj[r.kpiName] = { actualSum: 0, targetSum: 0, count: 0 };
+                    targetObj[r.kpiName].actualSum += parseFloat(r.actual);
+                    targetObj[r.kpiName].targetSum += parseFloat(r.target);
+                    targetObj[r.kpiName].count += 1;
+                });
+
+                const formatData = (statsObj) => {
+                    const labels = Object.keys(statsObj);
+                    return { 
+                        labels, 
+                        datasets: [ 
+                            { label: 'เป้าหมาย (Target)', data: labels.map(l => (statsObj[l].targetSum/statsObj[l].count).toFixed(2)), backgroundColor: 'rgba(200,200,200,0.5)' }, 
+                            { label: 'ผลลัพธ์ (Actual)', data: labels.map(l => (statsObj[l].actualSum/statsObj[l].count).toFixed(2)), backgroundColor: '#F472B6' } 
+                        ] 
+                    };
+                };
+
+                return { 
+                    highScale: formatData(highStats), 
+                    lowScale: formatData(lowStats) 
+                };
+            }, [filteredData, kpiDefinitions]);
+
+            const pieChartData = { labels: ['ผ่านเกณฑ์', 'ไม่ผ่านเกณฑ์'], datasets: [{ data: [stats.passed, stats.failed], backgroundColor: ['#6EE7B7', '#FCA5A5'] }] };
+
+            const unitMonthlyTrendData = useMemo(() => {
+                if (activeTab !== 'unit' || !unitTrendKpiName) return null;
+                
+                const currentRecords = kpiRecords.filter(r => r.kpiName === unitTrendKpiName && r.fiscalYear == filterYear && r.unit === selectedUnitTab);
+                const monthlyDataCurrent = Array(12).fill(0).map(() => ({ sum: 0, count: 0 }));
+                currentRecords.forEach(r => { const m = parseInt(r.month); if(monthlyDataCurrent[m]) { monthlyDataCurrent[m].sum += parseFloat(r.actual); monthlyDataCurrent[m].count++; } });
+                
+                const labels = [], dataCurrent = [], dataTarget = [];
+                const kpiDef = kpiDefinitions.find(k => k.name === unitTrendKpiName);
+                const targetVal = kpiDef ? kpiDef.target : 0;
+                const fiscalMonthOrder = [9, 10, 11, 0, 1, 2, 3, 4, 5, 6, 7, 8];
+                
+                fiscalMonthOrder.forEach((mIndex) => {
+                    labels.push(getShortMonthName(mIndex));
+                    dataTarget.push(targetVal);
+                    dataCurrent.push(monthlyDataCurrent[mIndex].count > 0 ? (monthlyDataCurrent[mIndex].sum / monthlyDataCurrent[mIndex].count).toFixed(2) : null);
+                });
+
+                return {
+                    labels,
+                    datasets: [
+                        { label: `เป้าหมาย (${targetVal})`, data: dataTarget, borderColor: '#94A3B8', borderDash: [5, 5], borderWidth: 2, pointRadius: 0, tension: 0 },
+                        { label: `ผลลัพธ์ปี ${filterYear} (${selectedUnitTab})`, data: dataCurrent, borderColor: '#8B5CF6', backgroundColor: 'rgba(139, 92, 246, 0.1)', borderWidth: 3, fill: true, tension: 0.3, pointBackgroundColor: '#8B5CF6' }
+                    ]
+                };
+            }, [kpiRecords, filterYear, selectedUnitTab, activeTab, unitTrendKpiName, kpiDefinitions]);
+
+            const analysisData = useMemo(() => {
+                if (activeTab !== 'analysis') return { trend: {}, benchmark: {}, stats: {} };
+                
+                const trendCurrentRecords = kpiRecords.filter(r => r.kpiName === analysisKpiName && r.fiscalYear == filterYear);
+                const trendPrevRecords = kpiRecords.filter(r => r.kpiName === analysisKpiName && r.fiscalYear == (parseInt(filterYear) - 1));
+                const benchmarkCurrentRecords = kpiRecords.filter(r => r.kpiName === analysisKpiName && r.fiscalYear == filterYear);
+                
+                const monthlyDataCurrent = Array(12).fill(0).map(() => ({ sum: 0, count: 0 }));
+                const monthlyDataPrev = Array(12).fill(0).map(() => ({ sum: 0, count: 0 }));
+                trendCurrentRecords.forEach(r => { const m = parseInt(r.month); if(monthlyDataCurrent[m]) { monthlyDataCurrent[m].sum += parseFloat(r.actual); monthlyDataCurrent[m].count++; } });
+                trendPrevRecords.forEach(r => { const m = parseInt(r.month); if(monthlyDataPrev[m]) { monthlyDataPrev[m].sum += parseFloat(r.actual); monthlyDataPrev[m].count++; } });
+                
+                const labels = [], dataCurrent = [], dataPrev = [], dataTarget = [];
+                const kpiDef = kpiDefinitions.find(k => k.name === analysisKpiName);
+                const targetVal = kpiDef ? kpiDef.target : 0;
+                const fiscalMonthOrder = [9, 10, 11, 0, 1, 2, 3, 4, 5, 6, 7, 8];
+                fiscalMonthOrder.forEach((mIndex) => {
+                    labels.push(getShortMonthName(mIndex));
+                    dataTarget.push(targetVal);
+                    dataCurrent.push(monthlyDataCurrent[mIndex].count > 0 ? (monthlyDataCurrent[mIndex].sum / monthlyDataCurrent[mIndex].count).toFixed(2) : null);
+                    dataPrev.push(monthlyDataPrev[mIndex].count > 0 ? (monthlyDataPrev[mIndex].sum / monthlyDataPrev[mIndex].count).toFixed(2) : null);
+                });
+                
+                const trendChartData = {
+                    labels: labels,
+                    datasets: [
+                        { label: `Target (${targetVal})`, data: dataTarget, borderColor: '#94A3B8', borderDash: [5, 5], borderWidth: 2, pointRadius: 0, tension: 0 },
+                        { label: `Actual ภาพรวมปีงบฯ ${filterYear}`, data: dataCurrent, borderColor: '#EC4899', backgroundColor: 'rgba(236, 72, 153, 0.1)', borderWidth: 3, fill: true, tension: 0.3 },
+                        { label: `Actual ปีงบฯ ${parseInt(filterYear)-1} (Benchmark)`, data: dataPrev, borderColor: '#CBD5E1', borderWidth: 2, borderDash: [2, 2], pointRadius: 3, fill: false, tension: 0.3 }
+                    ]
+                };
+                
+                const unitData = {};
+                benchmarkCurrentRecords.forEach(r => { if(!unitData[r.unit]) unitData[r.unit] = {sum:0, count:0}; unitData[r.unit].sum += parseFloat(r.actual); unitData[r.unit].count++; });
+                const sortedUnits = Object.keys(unitData).sort();
+                
+                const bgColors = sortedUnits.map(u => '#6EE7B7');
+                
+                const benchmarkData = { labels: sortedUnits, datasets: [{ label: 'Avg Actual', data: sortedUnits.map(u => (unitData[u].sum/unitData[u].count).toFixed(2)), backgroundColor: bgColors, borderRadius: 6 }] };
+                const allVals = trendCurrentRecords.map(r => parseFloat(r.actual));
+                return { trend: trendChartData, benchmark: benchmarkData, stats: { max: allVals.length ? Math.max(...allVals).toFixed(2) : 0, min: allVals.length ? Math.min(...allVals).toFixed(2) : 0, avg: allVals.length ? (allVals.reduce((a,b)=>a+b,0)/allVals.length).toFixed(2) : 0 } };
+            }, [kpiRecords, analysisKpiName, filterYear, activeTab, kpiDefinitions]);
+
+            const handleAddData = async () => {
+                const newRecords = [];
+                const targetUnit = activeTab === 'unit' ? selectedUnitTab : inputUnit;
+                const denominatorMap = {}; 
+                Object.keys(inputsA).forEach(kpiId => {
+                    const valA = inputsA[kpiId];
+                    if (valA !== '') {
+                        const def = kpiDefinitions.find(k => k.id == kpiId);
+                        if (def) {
+                            let actualValue = valA;
+                            let note = inputNotes[kpiId] || "";
+                            if (def.calcType === 'rate_1000' || def.calcType === 'rate_100') {
+                                const valB = inputsB[kpiId];
+                                if (valB && parseFloat(valB) !== 0) {
+                                    const multiplier = def.calcType === 'rate_1000' ? 1000 : 100;
+                                    actualValue = ((parseFloat(valA) / parseFloat(valB)) * multiplier).toFixed(2);
+                                    note += ` [A=${valA}, B=${valB}]`;
+                                    if (def.denominatorRef) {
+                                        const denomDef = kpiDefinitions.find(k => k.id === def.denominatorRef);
+                                        if (denomDef) {
+                                            const key = `${targetUnit}-${inputMonth}-${inputYear}-${denomDef.id}`;
+                                            if (!denominatorMap[key]) {
+                                                newRecords.push({ id: generateUUID(), unit: targetUnit, kpiName: denomDef.name, target: 0, actual: valB, comparator: ">", unitType: "days", month: inputMonth, year: inputYear, status: "Pass", notes: "Auto-saved from " + def.name, kpiType: "hospital" });
+                                                denominatorMap[key] = true;
+                                            }
+                                        }
+                                    }
+                                } else { return; }
+                            }
+                            const isPass = checkPass(actualValue, def.target, def.comparator);
+                            newRecords.push({ id: generateUUID(), unit: targetUnit, kpiName: def.name, target: def.target, actual: actualValue, comparator: def.comparator, unitType: def.unit, month: inputMonth, year: inputYear, status: isPass ? "Pass" : "Not Pass", notes: note, kpiType: def.type });
+                        }
+                    }
+                });
+                if (newRecords.length > 0) {
+                    setIsSaving(true);
+                    try {
+                        await fetch(APP_SCRIPT_URL, { method: 'POST', body: JSON.stringify(newRecords), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+                        addToast("บันทึกสำเร็จ", `บันทึกข้อมูลเข้าสู่ระบบ ${newRecords.length} รายการเรียบร้อยแล้ว`, "success");
+                        setInputsA({}); setInputsB({}); setInputNotes({});
+                        fetchData();
+                    } catch (error) { 
+                        addToast("ข้อผิดพลาด", "ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่", "error");
+                        setIsConnected(false); 
+                    } finally { setIsSaving(false); }
+                } else { addToast("แจ้งเตือน", "กรุณากรอกข้อมูลผลลัพธ์อย่างน้อย 1 ตัวชี้วัด", "info"); }
+            };
+
+            const handleDeleteClick = (id) => {
+                if (!id) { addToast("ไม่สามารถลบได้", "รายการนี้เป็นข้อมูลเก่าที่ไม่มี ID รบกวนลบใน Google Sheet โดยตรง", "error"); return; }
+                setConfirmDeleteState({ isOpen: true, id: id, type: 'data' });
+            };
+
+            const handleDeleteKPIDef = (id) => { setConfirmDeleteState({ isOpen: true, id: id, type: 'def' }); };
+
+            const confirmDelete = async () => {
+                const { id, type } = confirmDeleteState;
+                setConfirmDeleteState({ isOpen: false, id: null, type: 'data' });
+
+                if (type === 'def') {
+                    const newDefs = kpiDefinitions.filter(k => k.id !== id);
+                    updateKpiDefinitions(newDefs);
+                    addToast("สำเร็จ", "ลบตัวชี้วัดเรียบร้อยแล้ว", "success");
+                    return;
+                }
+
+                setLoading(true);
+                try {
+                    await fetch(APP_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', id: id }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+                    addToast("สำเร็จ", "ลบข้อมูลที่เลือกเรียบร้อยแล้ว", "success");
+                    fetchData();
+                } catch (error) { addToast("ข้อผิดพลาด", "ไม่สามารถลบข้อมูลได้", "error"); setLoading(false); }
+            };
+
+            const handleUpdateRecord = async (updatedRecord) => {
+                if (!updatedRecord.id) { addToast("ไม่สามารถแก้ไขได้", "รายการนี้เป็นข้อมูลเก่า (ไม่มี ID) รบกวนแก้ไขที่ Google Sheet", "error"); return; }
+                setLoading(true);
+                const def = kpiDefinitions.find(k => k.name === updatedRecord.kpiName);
+                if (def) { updatedRecord.status = checkPass(updatedRecord.actual, def.target, def.comparator) ? "Pass" : "Not Pass"; }
+                try {
+                    await fetch(APP_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'edit', ...updatedRecord }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+                    addToast("สำเร็จ", "แก้ไขข้อมูลและบันทึกเรียบร้อย", "success");
+                    fetchData();
+                } catch (error) { addToast("ข้อผิดพลาด", "แก้ไขข้อมูลไม่สำเร็จ", "error"); setLoading(false); }
+            };
+
+            const handleSaveKpiDef = (formData) => {
+                let newDefs;
+                if (kpiFormState.mode === 'add') {
+                     const newDef = { 
+                        id: generateUUID(), 
+                        ...formData, 
+                        type: activeTab === 'hospital' ? 'hospital' : 'unit', 
+                        ownerUnit: activeTab === 'unit' ? selectedUnitTab : null 
+                    };
+                    if (formData.calcType === 'count') { delete newDef.labelA; delete newDef.labelB; }
+                    newDefs = [...kpiDefinitions, newDef];
+                    addToast("สำเร็จ", "เพิ่มตัวชี้วัดใหม่เรียบร้อย", "success");
+                } else {
+                    const updatedDef = { ...formData };
+                    updatedDef.ownerUnit = activeTab === 'unit' ? selectedUnitTab : null;
+                    if (formData.calcType === 'count') { delete updatedDef.labelA; delete updatedDef.labelB; }
+                    newDefs = kpiDefinitions.map(k => k.id === updatedDef.id ? updatedDef : k);
+                    addToast("สำเร็จ", "อัปเดตตัวชี้วัดเรียบร้อย", "success");
+                }
+                
+                updateKpiDefinitions(newDefs);
+                setKpiFormState({ isOpen: false, mode: 'add', data: null });
+            };
+
+            const handleOpenAddKpi = () => { setKpiFormState({ isOpen: true, mode: 'add', data: { name: '', target: '', comparator: '<=', unit: '', calcType: 'count', labelA: '', labelB: '', targetUnits: activeTab === 'hospital' ? ALL_UNITS_EXCEPT_IC : [] } }); };
+            const handleOpenEditKpi = (kpi) => { setKpiFormState({ isOpen: true, mode: 'edit', data: { ...kpi } }); };
+            const handleExport = () => { 
+                const wb = XLSX.utils.book_new(); 
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filteredData), "KPI Data"); 
+                XLSX.writeFile(wb, `KPI_${activeTab}.xlsx`); 
+                addToast("ดาวน์โหลดสำเร็จ", "ระบบกำลังดาวน์โหลดไฟล์ Excel", "success");
+            };
+
+            const visibleGeneralKpis = useMemo(() => {
+                if (activeTab !== 'hospital') return [];
+                return groupedDefinitions.general.filter(k => !k.targetUnits || k.targetUnits.includes('ALL') || k.targetUnits.includes(inputUnit));
+            }, [groupedDefinitions, inputUnit, activeTab]);
+
+            const visibleIcKpis = useMemo(() => {
+                if (activeTab !== 'hospital') return [];
+                return groupedDefinitions.ic.filter(k => !k.targetUnits || k.targetUnits.includes('ALL') || k.targetUnits.includes(inputUnit));
+            }, [groupedDefinitions, inputUnit, activeTab]);
+
+            return (
+                <div className="min-h-screen pb-20">
+                    <Header isConnected={isConnected} />
+                    
+                    <ToastManager toasts={toasts} removeToast={removeToast} />
+
+                    <main className="container mx-auto px-4 max-w-7xl">
+                        <div className="flex justify-between items-center mb-4 overflow-x-auto pb-2">
+                            <div className="flex space-x-2 min-w-max">
+                                {[{id:'hospital', label:'Hospital Overview'}, {id:'unit', label:'Unit KPI'}, {id:'tracking', label:'Submission Status'}, {id:'analysis', label:'Data Analysis'}].map(t => (
+                                    <button key={t.id} onClick={() => {setActiveTab(t.id); setInputsA({}); setInputsB({});}} className={`px-6 py-3 rounded-xl font-medium shadow-sm transition ${activeTab===t.id ? 'bg-pink-500 text-white' : 'bg-white text-slate-500'}`}>{t.label}</button>
+                                ))}
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <a href={KPI_DICT_URL} target="_blank" rel="noopener noreferrer" className="p-2 bg-indigo-50 text-indigo-600 rounded-full shadow hover:bg-indigo-100 flex items-center gap-1 ml-2 border border-indigo-200 transition-colors" title="ดูคู่มือความหมายตัวชี้วัด (KPI Dictionary)">
+                                    <Icons.ExternalLink size={18} /> <span className="text-xs hidden sm:inline font-bold">คู่มือ KPI</span>
+                                </a>
+                                <button onClick={fetchData} className="p-2 bg-white rounded-full shadow hover:bg-slate-50 text-slate-500 flex items-center gap-1" title="รีเฟรชข้อมูลจาก Google Sheet">
+                                    <Icons.RefreshCw size={20} className={loading ? 'animate-spin' : ''} /> <span className="text-xs hidden sm:inline">Sync</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* GLOBAL FILTERS */}
+                        <div className="glass-card rounded-2xl p-4 mb-8 flex flex-wrap gap-4 items-center z-10 relative">
+                            <span className="font-bold text-slate-600">ตัวกรอง (Global Filter):</span>
+                            {activeTab === 'hospital' && <select className="input-pastel rounded px-4 py-2" value={filterUnit} onChange={e => {setFilterUnit(e.target.value); if(e.target.value !== 'all') setInputUnit(e.target.value);}}><option value="all">All Units / ภาพรวม</option>{UNITS.map(u => <option key={u} value={u}>{u}</option>)}</select>}
+                            {activeTab === 'unit' && <select className="input-pastel rounded px-4 py-2 border-blue-300" value={selectedUnitTab} onChange={e => {setSelectedUnitTab(e.target.value); setInputsA({}); setInputUnit(e.target.value);}}>{UNITS.map(u => <option key={u} value={u}>{u}</option>)}</select>}
+                            
+                            {activeTab !== 'analysis' && activeTab !== 'tracking' && <select className="input-pastel rounded px-4 py-2" value={filterMonth} onChange={e => {setFilterMonth(e.target.value); if(e.target.value !== 'all') setInputMonth(e.target.value); setFilterQuarter('all');}}>
+                                <option value="all">ทุกเดือน (All Months)</option>
+                                {[...Array(12)].map((_,i) => <option key={i} value={i}>{getMonthName(i)}</option>)}
+                            </select>}
+                            <div className="flex items-center gap-2"><label className="text-sm font-bold text-slate-500">ปีงบประมาณ:</label><input type="number" className="input-pastel rounded px-4 py-2 w-24 font-bold text-pink-600" value={filterYear} onChange={e => {setFilterYear(e.target.value);}} /></div>
+                        </div>
+
+                        {(activeTab === 'hospital' || activeTab === 'unit') && (
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                                    <Card title="Pass Rate" value={`${stats.passRate}%`} subtext={`Passed: ${stats.passed}/${stats.total}`} icon={Icons.Activity} colorClass="bg-emerald-50" textColor="text-emerald-600" />
+                                    <Card title="Total Records" value={stats.total} icon={Icons.Database} colorClass="bg-blue-50" textColor="text-blue-600" />
+                                    <Card title="Not Passed" value={stats.failed} icon={Icons.AlertCircle} colorClass="bg-rose-50" textColor="text-rose-500" />
+                                </div>
+
+                                {/* --- NEW: MONTHLY TREND CHART FOR UNIT TAB --- */}
+                                {activeTab === 'unit' && activeDefinitions.length > 0 && (
+                                    <div className="glass-card rounded-2xl p-6 mb-8 bg-gradient-to-r from-purple-50 to-white">
+                                        <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
+                                            <div className="p-3 bg-purple-100 rounded-full shadow-sm text-purple-500"><Icons.TrendingUp size={24}/></div>
+                                            <div className="flex-1 w-full">
+                                                <h3 className="font-bold text-slate-700 mb-1">วิเคราะห์แนวโน้มรายเดือน (Monthly Trend)</h3>
+                                                <p className="text-xs text-slate-500 mb-2">ข้อมูลผลลัพธ์ของ <strong>{selectedUnitTab}</strong> ตลอดปีงบประมาณ {filterYear}</p>
+                                                <select className="input-pastel rounded px-4 py-2 w-full max-w-md border-purple-200" value={unitTrendKpiName} onChange={e => setUnitTrendKpiName(e.target.value)}>
+                                                    {activeDefinitions.map(k=><option key={k.id} value={k.name}>{k.name}</option>)}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        {unitMonthlyTrendData && (
+                                            <div className="h-64 w-full mt-4 bg-white rounded-xl p-2 border border-slate-100 shadow-sm">
+                                                <ChartComponent type="line" data={unitMonthlyTrendData} options={{maintainAspectRatio:false, interaction: {mode: 'index', intersect: false}}} />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                                    <div className="glass-card rounded-2xl p-6 bg-white/60 lg:col-span-2">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h4 className="text-sm font-bold text-slate-600 z-10">
+                                                {activeTab === 'hospital' ? 'กลุ่มสเกลต่ำ (อัตราต่อ 1,000 วัน / จำนวนนับ)' : `เดือนที่เลือก: ภาพรวมหน่วยงาน ${selectedUnitTab} (สเกลต่ำ)`}
+                                            </h4>
+                                        </div>
+                                        <div className="h-56 w-full">
+                                            <ChartComponent type="bar" data={chartData.lowScale} options={{ maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { position: 'top' } } }} />
+                                        </div>
+                                    </div>
+                                    <div className="glass-card rounded-2xl p-6 bg-white/60">
+                                        <h4 className="text-sm font-bold text-slate-600 mb-4 text-center z-10">สัดส่วนผ่านเกณฑ์</h4>
+                                        <div className="h-56 flex justify-center w-full"><ChartComponent type="pie" data={pieChartData} options={{ maintainAspectRatio: false }} /></div>
+                                    </div>
+                                </div>
+                                
+                                {chartData.highScale.labels.length > 0 && (
+                                    <div className="grid grid-cols-1 gap-6 mb-8">
+                                        <div className="glass-card rounded-2xl p-6 bg-white/60">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <h4 className="text-sm font-bold text-slate-600 z-10">
+                                                    {activeTab === 'hospital' ? 'กลุ่มสเกลสูง (ร้อยละ % / ความพึงพอใจ)' : `เดือนที่เลือก: ภาพรวมหน่วยงาน ${selectedUnitTab} (ร้อยละ %)`}
+                                                </h4>
+                                            </div>
+                                            <div className="h-64 w-full">
+                                                <ChartComponent type="bar" data={chartData.highScale} options={{ maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 } }, plugins: { legend: { position: 'top' } } }} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                <div className={`glass-card rounded-2xl p-6 mb-8 bg-white shadow-lg border-t-4 ${activeTab==='hospital'?'border-pink-300':'border-blue-300'}`}>
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-xl font-bold text-slate-800">บันทึก KPI ({activeTab==='hospital'?'Hospital Core':selectedUnitTab})</h3>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => setShowManageModal(true)} className="px-4 py-2 bg-slate-50 text-slate-600 rounded hover:bg-slate-100 text-sm border flex items-center gap-1"><Icons.Settings size={14}/> จัดการ KPI</button>
+                                            <button onClick={handleAddData} disabled={isSaving} className={`px-6 py-2 text-white rounded shadow hover:shadow-lg transition flex items-center gap-2 ${isSaving ? 'bg-gray-400' : 'bg-pink-500 hover:bg-pink-600'}`}>{isSaving ? 'กำลังบันทึก...' : <><Icons.Save size={16}/> บันทึกข้อมูล</>}</button>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-slate-50 rounded-xl">
+                                        <div><label className="block text-xs font-bold text-slate-500">Unit</label><select className="w-full input-pastel rounded px-3 py-2" disabled={activeTab==='unit'} value={activeTab==='unit'?selectedUnitTab:inputUnit} onChange={e=>setInputUnit(e.target.value)}>{UNITS.map(u=><option key={u} value={u}>{u}</option>)}</select></div>
+                                        <div><label className="block text-xs font-bold text-slate-500">Month</label><select className="w-full input-pastel rounded px-3 py-2" value={inputMonth} onChange={e=>setInputMonth(e.target.value)}>{[...Array(12)].map((_,i)=><option key={i} value={i}>{getMonthName(i)}</option>)}</select></div>
+                                        {/* --- UPDATED LABEL FOR CLARITY --- */}
+                                        <div><label className="block text-xs font-bold text-slate-500">ปีปฏิทิน (พ.ศ.) <span className="font-normal text-[10px] text-pink-500">(เช่น ต.ค. 2568)</span></label><input type="number" className="w-full input-pastel rounded px-3 py-2" value={inputYear} onChange={e=>setInputYear(e.target.value)}/></div>
+                                    </div>
+                                    
+                                    {activeTab === 'hospital' ? (
+                                        <>
+                                            {visibleGeneralKpis.length > 0 && (
+                                                <>
+                                                    <div className="mb-2 px-2 py-1 bg-blue-50 rounded text-blue-700 font-bold text-sm flex justify-between items-center">
+                                                        <span>1. General Indicators</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 max-h-96 overflow-y-auto pr-2">
+                                                        {visibleGeneralKpis.map(kpi => ( 
+                                                            <KPIRow key={kpi.id} kpi={kpi} inputsA={inputsA} onChangeA={handleInputAChange} inputsB={inputsB} onChangeB={handleInputBChange} notes={inputNotes} onChangeNote={handleNoteChange} /> 
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            {visibleIcKpis.length > 0 && (
+                                                <>
+                                                    <div className="mb-2 px-2 py-1 bg-orange-50 rounded text-orange-700 font-bold text-sm">2. IC Data (Infection Control)</div>
+                                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-h-96 overflow-y-auto pr-2">
+                                                        {visibleIcKpis.map(kpi => ( 
+                                                            <KPIRow key={kpi.id} kpi={kpi} inputsA={inputsA} onChangeA={handleInputAChange} inputsB={inputsB} onChangeB={handleInputBChange} notes={inputNotes} onChangeNote={handleNoteChange} /> 
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            )}
+                                            
+                                            {visibleGeneralKpis.length === 0 && visibleIcKpis.length === 0 && (
+                                                <div className="text-center py-8 text-slate-400 border border-dashed rounded-xl bg-slate-50">
+                                                    หน่วยงาน {inputUnit} ไม่ได้ถูกกำหนดให้ส่งตัวชี้วัดโรงพยาบาลในระบบนี้
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-h-96 overflow-y-auto pr-2">
+                                            {activeDefinitions.map(kpi => (
+                                                <KPIRow key={kpi.id} kpi={kpi} inputsA={inputsA} onChangeA={handleInputAChange} inputsB={inputsB} onChangeB={handleInputBChange} notes={inputNotes} onChangeNote={handleNoteChange} />
+                                            ))}
+                                            {activeDefinitions.length === 0 && (
+                                                <div className="col-span-2 text-center py-8 text-slate-400 border border-dashed rounded-xl bg-slate-50">
+                                                    ยังไม่มีรายการ KPI สำหรับหน่วยงานนี้<br/>
+                                                    <button onClick={() => setShowManageModal(true)} className="text-pink-500 underline text-sm mt-2">จัดการ/เพิ่ม KPI ใหม่</button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                <KPITable data={filteredData} onExport={handleExport} loading={loading} totalRawRecords={kpiRecords.length} onDelete={handleDeleteClick} onEdit={setEditingRecord} />
+                            </>
+                        )}
+
+                        {activeTab === 'tracking' && (
+                            <SubmissionMatrix records={kpiRecords} year={filterYear} kpiDefinitions={kpiDefinitions} />
+                        )}
+                        
+                        {activeTab === 'analysis' && (
+                            <div className="animate-fade-in space-y-6">
+                                <div className="glass-card p-6 rounded-xl flex flex-col md:flex-row items-center gap-4 bg-gradient-to-r from-pink-50 to-white mt-8">
+                                    <div className="p-3 bg-white rounded-full shadow-sm text-pink-500"><Icons.TrendingUp size={24}/></div>
+                                    <div className="flex-1 w-full">
+                                        <h3 className="font-bold text-slate-700 mb-1">เปรียบเทียบสมรรถนะระหว่างหน่วยงาน (Benchmarking)</h3>
+                                        <p className="text-xs text-slate-500 mb-2">เปรียบเทียบผลลัพธ์ภาพรวมโรงพยาบาลและแยกรายหน่วยงาน ปีงบประมาณ {filterYear}</p>
+                                        <select className="input-pastel rounded px-4 py-2 w-full" value={analysisKpiName} onChange={e => setAnalysisKpiName(e.target.value)}>
+                                            <optgroup label="Hospital / Shared KPIs">
+                                                {kpiDefinitions.filter(k=>k.type==='hospital' || k.ownerUnit==='ALL').map(k=><option key={k.id} value={k.name}>{k.name}</option>)}
+                                            </optgroup>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="bg-white p-4 rounded border text-center"><div className="text-xs text-slate-400 mb-1">Average (ปีนี้)</div><span className="font-bold text-xl text-blue-600">{analysisData.stats.avg}</span></div>
+                                    <div className="bg-white p-4 rounded border text-center"><div className="text-xs text-slate-400 mb-1">Max (ปีนี้)</div><span className="font-bold text-xl text-emerald-600">{analysisData.stats.max}</span></div>
+                                    <div className="bg-white p-4 rounded border text-center"><div className="text-xs text-slate-400 mb-1">Min (ปีนี้)</div><span className="font-bold text-xl text-rose-600">{analysisData.stats.min}</span></div>
+                                </div>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <div className="glass-card p-6 rounded bg-white relative">
+                                        <h4 className="font-bold text-slate-600 mb-4 text-center">Trend Comparison (ภาพรวมโรงพยาบาล)</h4>
+                                        <div className="h-72 w-full"><ChartComponent type="line" data={analysisData.trend} options={{maintainAspectRatio:false, interaction: {mode: 'index', intersect: false}}} /></div>
+                                    </div>
+                                    <div className="glass-card p-6 rounded bg-white">
+                                        <h4 className="font-bold text-slate-600 mb-4 text-center">Unit Comparison (เปรียบเทียบรายตึก)</h4>
+                                        <div className="h-72 w-full"><ChartComponent type="bar" data={analysisData.benchmark} options={{maintainAspectRatio:false}} /></div>
+                                    </div>
+                                </div>
+                                
+                                <KPITable data={filteredData} onExport={handleExport} loading={loading} totalRawRecords={kpiRecords.length} onDelete={handleDeleteClick} onEdit={setEditingRecord} />
+                            </div>
+                        )}
+
+                        <ManageKPIsModal isOpen={showManageModal} onClose={()=>setShowManageModal(false)} kpis={activeDefinitions} onSave={handleSaveKpiDef} onDelete={handleDeleteKPIDef} onAdd={handleOpenAddKpi} onEdit={handleOpenEditKpi} type={activeTab==='hospital'?'hospital':'unit'} ownerUnit={selectedUnitTab} allKpiDefs={kpiDefinitions} onImportDefs={updateKpiDefinitions} />
+                        <KPIFormModal isOpen={kpiFormState.isOpen} mode={kpiFormState.mode} initialData={kpiFormState.data} onClose={() => setKpiFormState({...kpiFormState, isOpen: false})} onSave={handleSaveKpiDef} activeTab={activeTab} selectedUnitTab={selectedUnitTab} />
+                        <EditRecordModal isOpen={!!editingRecord} record={editingRecord} onClose={() => setEditingRecord(null)} onSave={handleUpdateRecord} />
+                        <ConfirmModal isOpen={confirmDeleteState.isOpen} onClose={() => setConfirmDeleteState({isOpen: false, id: null, type: 'data'})} onConfirm={confirmDelete} title={confirmDeleteState.type === 'def' ? "ยืนยันการลบตัวชี้วัด (KPI)" : "ยืนยันการลบข้อมูล (Record)"} message={confirmDeleteState.type === 'def' ? "คุณแน่ใจหรือไม่ว่าต้องการลบตัวชี้วัดนี้? ข้อมูลที่เคยบันทึกจะยังคงอยู่แต่ตัวชี้วัดจะหายไป" : "คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้"} />
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
