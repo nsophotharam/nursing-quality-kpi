@@ -118,27 +118,27 @@
 
         // --- KPI DEFINITIONS & TARGET MAPPING ---
         const INITIAL_HOSPITAL_KPIS = [
-            { id: 1, name: "Pressure Ulcer rate", category: 'general', target: 4, comparator: "<=", unit: "per 1,000 pt-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวนเกิดแผลกดทับ", labelB: "วันนอนผู้ป่วยรวม", denominatorRef: 901, targetUnits: ALL_UNITS_EXCEPT_IC },
-            { id: 2, name: "Fall with injury", category: 'general', target: 1, comparator: "<", unit: "per 1,000 pt-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวนพลัดตกหกล้ม", labelB: "วันนอนผู้ป่วยรวม", denominatorRef: 901, targetUnits: ALL_UNITS_EXCEPT_IC },
-            { id: 3, name: "Readmission 28 days", category: 'general', target: 5, comparator: "<=", unit: "%", type: 'hospital', calcType: 'rate_100', labelA: "จำนวน Readmit", labelB: "จำนวนจำหน่ายเดือนก่อน", targetUnits: ALL_UNITS_EXCEPT_IC },
-            { id: 4, name: "Phlebitis >= grade 3", category: 'general', target: 0, comparator: "=", unit: "cases", type: 'hospital', calcType: 'count', targetUnits: ALL_UNITS_EXCEPT_IC },
-            { id: 5, name: "Blood transfusion error", category: 'general', target: 0, comparator: "=", unit: "cases", type: 'hospital', calcType: 'count', targetUnits: ALL_UNITS_EXCEPT_IC },
-            { id: 15, name: "Accidental extubation", category: 'general', target: 10, comparator: "<", unit: "per 1,000 ventilator-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวนท่อเลื่อนหลุด", labelB: "วันใส่เครื่องช่วยหายใจ", denominatorRef: 902, targetUnits: ALL_UNITS_EXCEPT_IC },
-            { id: 7, name: "Nurse injury/infection", category: 'general', target: 0, comparator: "=", unit: "cases", type: 'hospital', calcType: 'count', targetUnits: ALL_UNITS_EXCEPT_IC },
-            { id: 902, name: "Ventilator Days", category: 'general', target: 0, comparator: ">", unit: "days", type: 'hospital', calcType: 'count', isICData: true, manualInput: true, targetUnits: ALL_UNITS_EXCEPT_IC },
-            { id: 903, name: "Catheter Days", category: 'general', target: 0, comparator: ">", unit: "days", type: 'hospital', calcType: 'count', isICData: true, manualInput: true, targetUnits: ALL_UNITS_EXCEPT_IC },
-            { id: 904, name: "Central Line Days", category: 'general', target: 0, comparator: ">", unit: "days", type: 'hospital', calcType: 'count', isICData: true, manualInput: true, targetUnits: ALL_UNITS_EXCEPT_IC },
+            { id: 1, name: "Pressure Ulcer rate", category: 'general', target: 4, comparator: "<=", unit: "per 1,000 pt-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวนเกิดแผลกดทับ", labelB: "วันนอนผู้ป่วยรวม", denominatorRef: 901, targetUnits: ALL_UNITS_EXCEPT_IC, description: "อัตราการเกิดแผลกดทับต่อ 1,000 วันนอน\nตัวตั้ง = จำนวนผู้ป่วยที่เกิดแผลกดทับ\nตัวหาร = วันนอนผู้ป่วยรวม" },
+            { id: 2, name: "Fall with injury", category: 'general', target: 1, comparator: "<", unit: "per 1,000 pt-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวนพลัดตกหกล้ม", labelB: "วันนอนผู้ป่วยรวม", denominatorRef: 901, targetUnits: ALL_UNITS_EXCEPT_IC, description: "อัตราการพลัดตกหกล้มที่มีการบาดเจ็บต่อ 1,000 วันนอน\nตัวตั้ง = จำนวนครั้งที่พลัดตกหกล้มและมีการบาดเจ็บ\nตัวหาร = วันนอนผู้ป่วยรวม" },
+            { id: 3, name: "Readmission 28 days", category: 'general', target: 5, comparator: "<=", unit: "%", type: 'hospital', calcType: 'rate_100', labelA: "จำนวน Readmit", labelB: "จำนวนจำหน่ายเดือนก่อน", targetUnits: ALL_UNITS_EXCEPT_IC, description: "ร้อยละผู้ป่วยที่กลับมานอน รพ. ภายใน 28 วันหลังจำหน่าย\nตัวตั้ง = จำนวน Readmit ภายใน 28 วัน\nตัวหาร = จำนวนผู้ป่วยที่จำหน่ายในเดือนก่อน" },
+            { id: 4, name: "Phlebitis >= grade 3", category: 'general', target: 0, comparator: "=", unit: "cases", type: 'hospital', calcType: 'count', targetUnits: ALL_UNITS_EXCEPT_IC, description: "จำนวนครั้งที่เกิดหลอดเลือดดำอักเสบระดับ 3 ขึ้นไปจากการให้น้ำเกลือ/ยาทางหลอดเลือด" },
+            { id: 5, name: "Blood transfusion error", category: 'general', target: 0, comparator: "=", unit: "cases", type: 'hospital', calcType: 'count', targetUnits: ALL_UNITS_EXCEPT_IC, description: "จำนวนครั้งที่เกิดความคลาดเคลื่อนในการให้เลือด (ผิดคน ผิดหมู่ ผิดชนิด ฯลฯ)" },
+            { id: 15, name: "Accidental extubation", category: 'general', target: 10, comparator: "<", unit: "per 1,000 ventilator-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวนท่อเลื่อนหลุด", labelB: "วันใส่เครื่องช่วยหายใจ", denominatorRef: 902, targetUnits: ALL_UNITS_EXCEPT_IC, description: "อัตราท่อช่วยหายใจเลื่อนหลุดโดยไม่ได้ตั้งใจต่อ 1,000 ventilator-days\nตัวตั้ง = จำนวนครั้งท่อเลื่อนหลุด\nตัวหาร = วันใส่เครื่องช่วยหายใจ" },
+            { id: 7, name: "Nurse injury/infection", category: 'general', target: 0, comparator: "=", unit: "cases", type: 'hospital', calcType: 'count', targetUnits: ALL_UNITS_EXCEPT_IC, description: "จำนวนครั้งที่พยาบาลได้รับบาดเจ็บหรือติดเชื้อจากการปฏิบัติงาน (เช่น เข็มทิ่ม เลือดกระเด็น)" },
+            { id: 902, name: "Ventilator Days", category: 'general', target: 0, comparator: ">", unit: "days", type: 'hospital', calcType: 'count', isICData: true, manualInput: true, targetUnits: ALL_UNITS_EXCEPT_IC, description: "จำนวนวันรวมที่ผู้ป่วยใส่เครื่องช่วยหายใจ (ใช้เป็นตัวหารของ VAP / Accidental extubation)" },
+            { id: 903, name: "Catheter Days", category: 'general', target: 0, comparator: ">", unit: "days", type: 'hospital', calcType: 'count', isICData: true, manualInput: true, targetUnits: ALL_UNITS_EXCEPT_IC, description: "จำนวนวันรวมที่ผู้ป่วยใส่สายสวนปัสสาวะ (ใช้เป็นตัวหารของ CAUTI)" },
+            { id: 904, name: "Central Line Days", category: 'general', target: 0, comparator: ">", unit: "days", type: 'hospital', calcType: 'count', isICData: true, manualInput: true, targetUnits: ALL_UNITS_EXCEPT_IC, description: "จำนวนวันรวมที่ผู้ป่วยใส่ Central Line (ใช้เป็นตัวหารของ CLABSI)" },
             
             // IC Specific KPIs (Only for 'IC' unit)
-            { id: 8, name: "VAP", category: 'ic', target: 1, comparator: "<", unit: "per 1,000 ventilator-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวน VAP", labelB: "วันใส่เครื่องช่วยหายใจ", denominatorRef: 902, targetUnits: ['IC'] },
-            { id: 9, name: "CAUTI", category: 'ic', target: 1.5, comparator: "<", unit: "per 1,000 catheter-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวน CAUTI", labelB: "วันใส่สายสวนปัสสาวะ", denominatorRef: 903, targetUnits: ['IC'] },
-            { id: 11, name: "NI rate", category: 'ic', target: 3, comparator: "<=", unit: "per 1,000 pt-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวน NI", labelB: "วันนอนผู้ป่วยรวม", denominatorRef: 901, targetUnits: ['IC'] },
-            { id: 10, name: "CLABSI", category: 'ic', target: 1.5, comparator: "<", unit: "per 1,000 central line-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวน CLABSI", labelB: "วันใส่ Central Line", denominatorRef: 904, targetUnits: ['IC'] },
+            { id: 8, name: "VAP", category: 'ic', target: 1, comparator: "<", unit: "per 1,000 ventilator-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวน VAP", labelB: "วันใส่เครื่องช่วยหายใจ", denominatorRef: 902, targetUnits: ['IC'], description: "Ventilator-Associated Pneumonia\nอัตราปอดอักเสบที่สัมพันธ์กับเครื่องช่วยหายใจต่อ 1,000 ventilator-days" },
+            { id: 9, name: "CAUTI", category: 'ic', target: 1.5, comparator: "<", unit: "per 1,000 catheter-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวน CAUTI", labelB: "วันใส่สายสวนปัสสาวะ", denominatorRef: 903, targetUnits: ['IC'], description: "Catheter-Associated Urinary Tract Infection\nอัตราการติดเชื้อทางเดินปัสสาวะจากสายสวนต่อ 1,000 catheter-days" },
+            { id: 11, name: "NI rate", category: 'ic', target: 3, comparator: "<=", unit: "per 1,000 pt-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวน NI", labelB: "วันนอนผู้ป่วยรวม", denominatorRef: 901, targetUnits: ['IC'], description: "Nosocomial Infection rate\nอัตราการติดเชื้อในโรงพยาบาลต่อ 1,000 วันนอน" },
+            { id: 10, name: "CLABSI", category: 'ic', target: 1.5, comparator: "<", unit: "per 1,000 central line-days", type: 'hospital', calcType: 'rate_1000', labelA: "จำนวน CLABSI", labelB: "วันใส่ Central Line", denominatorRef: 904, targetUnits: ['IC'], description: "Central Line-Associated Bloodstream Infection\nอัตราการติดเชื้อในกระแสเลือดจากสาย Central Line ต่อ 1,000 central line-days" },
         ];
 
         // --- ตัวชี้วัดกลางของหน่วยงาน (Shared Unit KPIs) ---
         const INITIAL_UNIT_KPIS = [
-            { id: 9001, name: "อัตราความพึงพอใจผู้ใช้บริการ", category: 'general', target: 80, comparator: ">=", unit: "%", type: 'unit', calcType: 'rate_100', labelA: "คะแนนรวมที่ได้", labelB: "คะแนนเต็มรวม", ownerUnit: 'ALL' }
+            { id: 9001, name: "อัตราความพึงพอใจผู้ใช้บริการ", category: 'general', target: 80, comparator: ">=", unit: "%", type: 'unit', calcType: 'rate_100', labelA: "คะแนนรวมที่ได้", labelB: "คะแนนเต็มรวม", ownerUnit: 'ALL', description: "ร้อยละความพึงพอใจของผู้ใช้บริการ\nตัวตั้ง = คะแนนรวมที่ได้จากแบบประเมิน\nตัวหาร = คะแนนเต็มรวม" }
         ];
 
         // --- HELPER FUNCTIONS ---
@@ -162,6 +162,39 @@
         
         // ฟังก์ชันแปลง ปีปฏิทิน -> ปีงบประมาณ (ต.ค. = เดือน 9 -> เป็นปีงบถัดไป)
         const getFiscalYear = (monthIndex, year) => (monthIndex >= 9) ? parseInt(year) + 1 : parseInt(year);
+
+        // POST ไป Apps Script แล้วตรวจว่าสำเร็จจริง (ไม่ขึ้นสำเร็จมั่ว)
+        const postToAppsScript = async (payload) => {
+            const res = await fetch(APP_SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload),
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+            });
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+            const text = (await res.text()).trim();
+            // ถ้าตอบเป็น JSON ที่มี error → ถือว่าล้มเหลว
+            if (text) {
+                try {
+                    const data = JSON.parse(text);
+                    if (data && (data.error || data.success === false || data.status === 'error')) {
+                        throw new Error(data.error || data.message || 'Apps Script returned error');
+                    }
+                    return data;
+                } catch (e) {
+                    if (e.message && (e.message.includes('Apps Script') || e.message.includes('HTTP'))) throw e;
+                    // ข้อความธรรมดาที่ดูเหมือน error
+                    const lower = text.toLowerCase();
+                    if (lower.includes('error') || lower.includes('exception') || lower.startsWith('ns o kpi system')) {
+                        throw new Error(text.slice(0, 200));
+                    }
+                    // ตอบข้อความอื่น / ว่าง หลัง HTTP OK → ถือว่าสำเร็จ (Apps Script หลายตัวตอบว่าง)
+                    return { ok: true, raw: text };
+                }
+            }
+            return { ok: true };
+        };
 
         // --- COMPONENTS ---
         const ChartComponent = ({ type, data, options }) => {
@@ -681,6 +714,7 @@
         };
 
         const KPIRow = ({ kpi, inputsA, onChangeA, inputsB, onChangeB, notes, onChangeNote, submittedRecord }) => {
+            const [showDesc, setShowDesc] = useState(false);
             const isCalc = kpi.calcType && (kpi.calcType === 'rate_1000' || kpi.calcType === 'rate_100');
             const valA = inputsA[kpi.id] || '';
             const valB = inputsB[kpi.id] || '';
@@ -692,6 +726,7 @@
             }
 
             const isSubmitted = !!submittedRecord;
+            const hasDesc = !!(kpi.description && String(kpi.description).trim());
 
             return (
                 <div className={`flex flex-col gap-2 p-4 border rounded relative transition-colors ${isSubmitted ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200 hover:bg-slate-50'}`}>
@@ -700,7 +735,9 @@
                             {kpi.name}
                             {kpi.isICData && <span className="text-[10px] bg-blue-100 text-blue-600 px-1 rounded">IC Data</span>}
                             {kpi.type === 'unit' && <span className="text-[10px] bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded font-bold">หน่วย</span>}
-                            <a href={KPI_DICT_URL} target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-indigo-500 transition-colors" title="คลิกเพื่อดูความหมายตัวชี้วัด"><Icons.Info size={14}/></a>
+                            <button type="button" onClick={() => setShowDesc(v => !v)} className={`p-0.5 rounded transition-colors ${showDesc ? 'text-indigo-600 bg-indigo-50' : 'text-slate-300 hover:text-indigo-500'}`} title="ดูความหมายตัวชี้วัด">
+                                <Icons.Info size={14}/>
+                            </button>
                         </div>
                         <div className="flex flex-col items-end gap-1 shrink-0">
                             {isSubmitted ? (
@@ -711,6 +748,14 @@
                             <div className="text-xs text-slate-400 bg-white px-2 py-0.5 rounded border">เป้า {kpi.comparator} {kpi.target}</div>
                         </div>
                     </div>
+                    {showDesc && (
+                        <div className="text-xs text-slate-600 bg-indigo-50/80 border border-indigo-100 rounded-lg px-3 py-2 leading-relaxed whitespace-pre-line">
+                            {hasDesc ? kpi.description : 'ยังไม่มีคำอธิบาย — เพิ่มได้ที่เมนูจัดการ KPI'}
+                            <div className="mt-1.5">
+                                <a href={KPI_DICT_URL} target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline text-[10px] font-medium">อ่านคู่มือฉบับเต็ม →</a>
+                            </div>
+                        </div>
+                    )}
                     <div className="flex flex-col gap-2">
                         {isCalc ? (
                             <div className="grid grid-cols-12 gap-2 items-end">
@@ -760,28 +805,31 @@
         };
 
         const EditRecordModal = ({ isOpen, onClose, record, onSave, kpiDefinitions = [] }) => {
-            if (!isOpen || !record) return null;
-            
-            const def = kpiDefinitions.find(k => k.name === record.kpiName);
-            const isRate = def && (def.calcType === 'rate_100' || def.calcType === 'rate_1000');
-            
-            // ดึงค่า A/B จาก notes เดิม ถ้ามีรูปแบบ [A=xx, B=yy]
-            const parseAB = (notes) => {
-                const m = String(notes || '').match(/\[A=([\d.]+),\s*B=([\d.]+)\]/);
-                return m ? { a: m[1], b: m[2] } : { a: '', b: '' };
-            };
-            const initialAB = parseAB(record.notes);
-            
-            const [editA, setEditA] = useState(initialAB.a);
-            const [editB, setEditB] = useState(initialAB.b);
-            const [editActual, setEditActual] = useState(record.actual);
-            const [editNote, setEditNote] = useState(() => {
-                // ตัดส่วน [A=..., B=...] ออกจาก note ที่แสดง
-                return String(record.notes || '').replace(/\s*\[A=[\d.]+,\s*B=[\d.]+\]\s*/g, '').trim();
-            });
+            // Hooks ต้องอยู่บนสุดเสมอ (Rules of Hooks)
+            const [editA, setEditA] = useState('');
+            const [editB, setEditB] = useState('');
+            const [editActual, setEditActual] = useState('');
+            const [editNote, setEditNote] = useState('');
             const [saving, setSaving] = useState(false);
 
-            // คำนวณอัตโนมัติเมื่อเป็น rate
+            useEffect(() => {
+                if (!record) return;
+                const parseAB = (notes) => {
+                    const m = String(notes || '').match(/\[A=([\d.]+),\s*B=([\d.]+)\]/);
+                    return m ? { a: m[1], b: m[2] } : { a: '', b: '' };
+                };
+                const ab = parseAB(record.notes);
+                setEditA(ab.a);
+                setEditB(ab.b);
+                setEditActual(record.actual ?? '');
+                setEditNote(String(record.notes || '').replace(/\s*\[A=[\d.]+,\s*B=[\d.]+\]\s*/g, '').trim());
+                setSaving(false);
+            }, [record]);
+
+            if (!isOpen || !record) return null;
+
+            const def = kpiDefinitions.find(k => k.name === record.kpiName);
+            const isRate = def && (def.calcType === 'rate_100' || def.calcType === 'rate_1000');
             const calculated = (() => {
                 if (!isRate || !editA || !editB || parseFloat(editB) === 0) return null;
                 const mult = def.calcType === 'rate_1000' ? 1000 : 100;
@@ -861,27 +909,29 @@
         };
 
         const KPIFormModal = ({ isOpen, onClose, mode, initialData, onSave, activeTab, selectedUnitTab }) => {
-            if (!isOpen) return null;
+            // Hooks ต้องเรียกทุก render (Rules of Hooks)
             const [formData, setFormData] = useState({ 
                 name: '', target: '', comparator: '<=', unit: '', calcType: 'count', labelA: '', labelB: '',
-                targetUnits: [],
-                ...initialData
+                description: '', targetUnits: []
             });
 
             useEffect(() => {
+                if (!isOpen) return;
                 if (initialData) {
                     setFormData({
                         name: '', target: '', comparator: '<=', unit: '', calcType: 'count', labelA: '', labelB: '',
+                        description: '',
                         targetUnits: initialData.targetUnits || (activeTab === 'hospital' ? ALL_UNITS_EXCEPT_IC : []),
                         ...initialData
                     });
                 } else {
                     setFormData({
                         name: '', target: '', comparator: '<=', unit: '', calcType: 'count', labelA: '', labelB: '',
+                        description: '',
                         targetUnits: activeTab === 'hospital' ? ALL_UNITS_EXCEPT_IC : []
                     });
                 }
-            }, [initialData, activeTab]);
+            }, [initialData, activeTab, isOpen]);
 
             const handleSave = () => {
                 if (!formData.name || formData.target === '' || formData.target === null || formData.target === undefined) {
@@ -889,6 +939,8 @@
                 }
                 onSave(formData);
             };
+
+            if (!isOpen) return null;
 
             return (
                  <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/30 backdrop-blur-sm animate-fade-in">
@@ -909,6 +961,11 @@
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1">ชื่อตัวชี้วัด (KPI Name)</label>
                                 <input className="w-full input-pastel rounded p-2" placeholder="เช่น คะแนนความพึงพอใจ" value={formData.name} onChange={e=>setFormData({...formData, name:e.target.value})} />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">คำอธิบาย / ความหมาย (แสดงตอนกด ℹ️)</label>
+                                <textarea className="w-full input-pastel rounded p-2 text-sm" rows="3" placeholder="อธิบายสั้นๆ ว่าตัวชี้วัดนี้คืออะไร วิธีนับตัวอย่างไร" value={formData.description || ''} onChange={e=>setFormData({...formData, description:e.target.value})} />
                             </div>
 
                             <div>
@@ -1188,8 +1245,12 @@
                                 allDefs = recoveredDefs;
                                 const initialAll = [...INITIAL_HOSPITAL_KPIS, ...INITIAL_UNIT_KPIS];
                                 initialAll.forEach(initKpi => {
-                                    if (!allDefs.some(d => d.id === initKpi.id)) {
+                                    const existing = allDefs.find(d => d.id === initKpi.id);
+                                    if (!existing) {
                                         allDefs.push(initKpi);
+                                    } else if (!existing.description && initKpi.description) {
+                                        // เติมคำอธิบายจากค่าเริ่มต้น ถ้ายังไม่มีใน cloud
+                                        existing.description = initKpi.description;
                                     }
                                 });
                             } else {
@@ -1523,12 +1584,13 @@
                 if (newRecords.length > 0) {
                     setIsSaving(true);
                     try {
-                        await fetch(APP_SCRIPT_URL, { method: 'POST', body: JSON.stringify(newRecords), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+                        await postToAppsScript(newRecords);
                         addToast("บันทึกสำเร็จ", `บันทึกข้อมูลเข้าสู่ระบบ ${newRecords.length} รายการเรียบร้อยแล้ว`, "success");
                         setInputsA({}); setInputsB({}); setInputNotes({});
-                        fetchData();
+                        await fetchData();
                     } catch (error) { 
-                        addToast("ข้อผิดพลาด", "ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่", "error");
+                        console.error(error);
+                        addToast("ข้อผิดพลาด", "ไม่สามารถบันทึกข้อมูลได้: " + (error.message || "กรุณาลองใหม่"), "error");
                         setIsConnected(false); 
                     } finally { setIsSaving(false); }
                 } else { addToast("แจ้งเตือน", "กรุณากรอกข้อมูลผลลัพธ์อย่างน้อย 1 ตัวชี้วัด", "info"); }
@@ -1554,10 +1616,16 @@
 
                 setLoading(true);
                 try {
-                    await fetch(APP_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', id: id }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+                    await postToAppsScript({ action: 'delete', id: id });
                     addToast("สำเร็จ", "ลบข้อมูลที่เลือกเรียบร้อยแล้ว", "success");
-                    fetchData();
-                } catch (error) { addToast("ข้อผิดพลาด", "ไม่สามารถลบข้อมูลได้", "error"); setLoading(false); }
+                    await fetchData();
+                } catch (error) { 
+                    console.error(error);
+                    addToast("ข้อผิดพลาด", "ไม่สามารถลบข้อมูลได้: " + (error.message || ""), "error"); 
+                    setIsConnected(false);
+                } finally {
+                    setLoading(false);
+                }
             };
 
             const handleUpdateRecord = async (updatedRecord) => {
@@ -1566,12 +1634,13 @@
                 const def = kpiDefinitions.find(k => k.name === updatedRecord.kpiName);
                 if (def) { updatedRecord.status = checkPass(updatedRecord.actual, def.target, def.comparator) ? "Pass" : "Not Pass"; }
                 try {
-                    await fetch(APP_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'edit', ...updatedRecord }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+                    await postToAppsScript({ action: 'edit', ...updatedRecord });
                     addToast("สำเร็จ", "แก้ไขข้อมูลและบันทึกเรียบร้อย", "success");
                     setEditingRecord(null);
                     await fetchData();
                 } catch (error) { 
-                    addToast("ข้อผิดพลาด", "แก้ไขข้อมูลไม่สำเร็จ", "error"); 
+                    console.error(error);
+                    addToast("ข้อผิดพลาด", "แก้ไขข้อมูลไม่สำเร็จ: " + (error.message || ""), "error"); 
                     setIsConnected(false);
                 } finally {
                     setLoading(false);
@@ -1602,7 +1671,7 @@
                 setKpiFormState({ isOpen: false, mode: 'add', data: null });
             };
 
-            const handleOpenAddKpi = () => { setKpiFormState({ isOpen: true, mode: 'add', data: { name: '', target: '', comparator: '<=', unit: '', calcType: 'count', labelA: '', labelB: '', targetUnits: activeTab === 'hospital' ? ALL_UNITS_EXCEPT_IC : [] } }); };
+            const handleOpenAddKpi = () => { setKpiFormState({ isOpen: true, mode: 'add', data: { name: '', target: '', comparator: '<=', unit: '', calcType: 'count', labelA: '', labelB: '', description: '', targetUnits: activeTab === 'hospital' ? ALL_UNITS_EXCEPT_IC : [] } }); };
             const handleOpenEditKpi = (kpi) => { setKpiFormState({ isOpen: true, mode: 'edit', data: { ...kpi } }); };
             const handleExport = () => {
                 const wb = XLSX.utils.book_new();
