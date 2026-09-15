@@ -927,7 +927,7 @@
             // Hooks ต้องเรียกทุก render (Rules of Hooks)
             const [formData, setFormData] = useState({ 
                 name: '', target: '', comparator: '<=', unit: '', calcType: 'count', labelA: '', labelB: '',
-                description: '', targetUnits: []
+                description: '', isICData: false, skipTarget: false, targetUnits: []
             });
 
             useEffect(() => {
@@ -935,24 +935,42 @@
                 if (initialData) {
                     setFormData({
                         name: '', target: '', comparator: '<=', unit: '', calcType: 'count', labelA: '', labelB: '',
-                        description: '',
+                        description: '', isICData: false, skipTarget: false,
                         targetUnits: initialData.targetUnits || (activeTab === 'hospital' ? ALL_UNITS_EXCEPT_IC : []),
                         ...initialData
                     });
                 } else {
                     setFormData({
                         name: '', target: '', comparator: '<=', unit: '', calcType: 'count', labelA: '', labelB: '',
-                        description: '',
+                        description: '', isICData: false, skipTarget: false,
                         targetUnits: activeTab === 'hospital' ? ALL_UNITS_EXCEPT_IC : []
                     });
                 }
             }, [initialData, activeTab, isOpen]);
 
+            const isBaseData = !!(formData.isICData || formData.skipTarget);
+
             const handleSave = () => {
-                if (!formData.name || formData.target === '' || formData.target === null || formData.target === undefined) {
-                    return alert("ระบุข้อมูลชื่อและค่าเป้าหมายให้ครบถ้วน");
+                if (!formData.name) {
+                    return alert("กรุณาระบุชื่อตัวชี้วัด");
                 }
-                onSave(formData);
+                if (!isBaseData && (formData.target === '' || formData.target === null || formData.target === undefined)) {
+                    return alert("กรุณาระบุค่าเป้าหมาย หรือเลือกประเภทเป็นข้อมูลฐาน");
+                }
+                const payload = { ...formData };
+                if (isBaseData) {
+                    payload.isICData = true;
+                    payload.skipTarget = true;
+                    payload.calcType = 'count';
+                    payload.target = 0;
+                    payload.comparator = '>';
+                    delete payload.labelA;
+                    delete payload.labelB;
+                } else {
+                    payload.isICData = false;
+                    payload.skipTarget = false;
+                }
+                onSave(payload);
             };
 
             if (!isOpen) return null;
@@ -984,6 +1002,34 @@
                             </div>
 
                             <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">ประเภทตัวชี้วัด</label>
+                                <select
+                                    className="w-full input-pastel rounded p-2"
+                                    value={isBaseData ? 'base' : 'kpi'}
+                                    onChange={e => {
+                                        const base = e.target.value === 'base';
+                                        setFormData({
+                                            ...formData,
+                                            isICData: base,
+                                            skipTarget: base,
+                                            calcType: base ? 'count' : formData.calcType,
+                                            target: base ? 0 : formData.target,
+                                            comparator: base ? '>' : formData.comparator
+                                        });
+                                    }}
+                                >
+                                    <option value="kpi">ตัวชี้วัดปกติ (มีเป้าหมาย ผ่าน/ไม่ผ่าน)</option>
+                                    <option value="base">ข้อมูลฐาน (เก็บตัวเลขอย่างเดียว ไม่เทียบเป้า)</option>
+                                </select>
+                                {isBaseData && (
+                                    <p className="text-[11px] text-blue-600 mt-1.5 bg-blue-50 border border-blue-100 rounded px-2 py-1.5">
+                                        ใช้สำหรับข้อมูลเช่น จำนวนวันใส่เครื่อง / วันใส่สาย — จะแสดงเป็น「ข้อมูลฐาน」ไม่ติดไม่ผ่านเกณฑ์
+                                    </p>
+                                )}
+                            </div>
+
+                            {!isBaseData && (
+                            <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1">รูปแบบการคำนวณ (Calculation Type)</label>
                                 <select className="w-full input-pastel rounded p-2" value={formData.calcType} onChange={e => setFormData({...formData, calcType: e.target.value, unit: e.target.value === 'rate_100' ? '%' : (e.target.value === 'rate_1000' ? 'per 1,000 days' : formData.unit)})}>
                                     <option value="count">จำนวนนับ (Standard Count)</option>
@@ -991,8 +1037,9 @@
                                     <option value="rate_1000">อัตราต่อ 1,000 (Rate per 1,000)</option>
                                 </select>
                             </div>
+                            )}
 
-                            {formData.calcType !== 'count' && (
+                            {!isBaseData && formData.calcType !== 'count' && (
                                 <div className="p-3 bg-blue-50 rounded border border-blue-100 animate-fade-in">
                                     <div className="mb-2">
                                         <label className="block text-xs font-bold text-blue-600 mb-1">ชื่อตัวตั้ง (A) - Numerator</label>
@@ -1005,6 +1052,7 @@
                                 </div>
                             )}
                             
+                            {!isBaseData && (
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1">เงื่อนไขเป้าหมาย</label>
@@ -1021,6 +1069,7 @@
                                     <input type="number" className="w-full input-pastel rounded p-2" placeholder="0" value={formData.target} onChange={e=>setFormData({...formData, target:e.target.value})} />
                                 </div>
                             </div>
+                            )}
                             
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1">หน่วยนับ (Unit)</label>
@@ -1101,9 +1150,9 @@
                                                     {kpi.ownerUnit === 'ALL' && <span className="ml-2 inline-block text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-bold uppercase">Shared</span>}
                                                     {kpi.isICData && <span className="ml-2 inline-block text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold uppercase">Base Data</span>}
                                                 </td>
-                                                <td className="py-2"><span className="text-xs bg-slate-100 px-2 py-1 rounded">{kpi.calcType === 'rate_100' ? '%' : (kpi.calcType === 'rate_1000' ? 'Rate' : 'Count')}</span></td>
-                                                <td className="py-2">{kpi.comparator}</td>
-                                                <td className="py-2">{kpi.target}</td>
+                                                <td className="py-2"><span className="text-xs bg-slate-100 px-2 py-1 rounded">{(kpi.isICData || kpi.skipTarget) ? 'Base' : (kpi.calcType === 'rate_100' ? '%' : (kpi.calcType === 'rate_1000' ? 'Rate' : 'Count'))}</span></td>
+                                                <td className="py-2">{(kpi.isICData || kpi.skipTarget) ? '—' : kpi.comparator}</td>
+                                                <td className="py-2">{(kpi.isICData || kpi.skipTarget) ? 'ไม่เทียบเป้า' : kpi.target}</td>
                                                 <td className="py-2">{kpi.unit}</td>
                                                 <td className="py-2 whitespace-nowrap">
                                                     <button onClick={() => onEdit(kpi)} className="text-blue-500 hover:text-blue-700 font-medium mr-3 bg-blue-50 px-2 py-1 rounded">Edit</button>
@@ -1694,7 +1743,7 @@
                 setKpiFormState({ isOpen: false, mode: 'add', data: null });
             };
 
-            const handleOpenAddKpi = () => { setKpiFormState({ isOpen: true, mode: 'add', data: { name: '', target: '', comparator: '<=', unit: '', calcType: 'count', labelA: '', labelB: '', description: '', targetUnits: activeTab === 'hospital' ? ALL_UNITS_EXCEPT_IC : [] } }); };
+            const handleOpenAddKpi = () => { setKpiFormState({ isOpen: true, mode: 'add', data: { name: '', target: '', comparator: '<=', unit: '', calcType: 'count', labelA: '', labelB: '', description: '', isICData: false, skipTarget: false, targetUnits: activeTab === 'hospital' ? ALL_UNITS_EXCEPT_IC : [] } }); };
             const handleOpenEditKpi = (kpi) => { setKpiFormState({ isOpen: true, mode: 'edit', data: { ...kpi } }); };
             const handleExport = () => {
                 const wb = XLSX.utils.book_new();
